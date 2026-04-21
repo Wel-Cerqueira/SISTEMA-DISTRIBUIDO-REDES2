@@ -1,13 +1,40 @@
-## Docker Commands for Linux
+# Docker Commands
 
-To build and run the Docker container for the project, use the following commands:
+## Installation
 
+To install Docker on your Linux system, run:
 ```bash
-# Build the Docker image
-docker build -t sistema-distribuido .
-
-# Run the Docker container
-docker run -p 8080:8080 sistema-distribuido
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io
 ```
 
-Make sure you have Docker installed on your Linux system before running these commands.
+## Running Docker
+
+Start Docker service:
+```bash
+sudo systemctl start docker
+```
+
+Run a Docker container:
+```bash
+docker run -it ubuntu /bin/bash
+```
+
+# Linux Commands
+
+## File Operations
+
+List files in a directory:
+```bash
+ls -l
+```
+
+Create a new file:
+```bash
+touch newfile.txt
+```
+
+Remove a file:
+```bash
+rm newfile.txt
+```
