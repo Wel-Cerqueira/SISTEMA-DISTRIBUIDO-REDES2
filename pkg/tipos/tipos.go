@@ -38,28 +38,29 @@ type Vizinho struct {
 
 // Recurso representa um recurso gerenciado pelo sistema
 type Recurso struct {
-	ID            string    `json:"id"`
-	Nome          string    `json:"nome"`
-	Tipo          string    `json:"tipo"`
-	Estado        string    `json:"estado"`
-	BrokerAtual string    `json:"broker_atual"`
-	BloqueadoPor  string    `json:"bloqueado_por"`
-	UltimoAcesso  time.Time `json:"ultimo_acesso"`
-	Versao        uint64    `json:"versao"`
+	ID             string    `json:"id"`
+	Nome           string    `json:"nome"`
+	Tipo           string    `json:"tipo"`
+	Estado         string    `json:"estado"` // disponivel, em_uso, manutencao
+	BrokerAtual    string    `json:"broker_atual"`
+	BloqueadoPor   string    `json:"bloqueado_por"`   // ID do broker que tem o lock
+	DonoRequisicao string    `json:"dono_requisicao"` // ID da requisicao que usou
+	UltimoAcesso   time.Time `json:"ultimo_acesso"`
+	Versao         uint64    `json:"versao"`
 }
 
 // Requisicao representa uma requisiÃ§Ã£o no sistema
 type Requisicao struct {
-	ID             string      `json:"id"`
-	Tipo           string      `json:"tipo"`
-	BrokerOrigem string      `json:"broker_origem"`
-	RecursoID      string      `json:"recurso_id"`
-	Dados          interface{} `json:"dados"`
-	Estado         string      `json:"estado"`
-	CarimboTempo   time.Time   `json:"carimbo_tempo"`
-	Prioridade     int         `json:"prioridade"`
-	GrauCriticidade int        `json:"grau_criticidade"`
-	Tentativas     int         `json:"tentativas"`
+	ID              string      `json:"id"`
+	Tipo            string      `json:"tipo"`
+	BrokerOrigem    string      `json:"broker_origem"`
+	RecursoID       string      `json:"recurso_id"`
+	Dados           interface{} `json:"dados"`
+	Estado          string      `json:"estado"`
+	CarimboTempo    time.Time   `json:"carimbo_tempo"`
+	Prioridade      int         `json:"prioridade"`
+	GrauCriticidade int         `json:"grau_criticidade"`
+	Tentativas      int         `json:"tentativas"`
 }
 
 // Resposta representa uma resposta a uma requisiÃ§Ã£o
@@ -104,4 +105,3 @@ type EventoSensor struct {
 	CarimboTempo time.Time   `json:"carimbo_tempo"`
 	Processado   bool        `json:"processado"`
 }
-
