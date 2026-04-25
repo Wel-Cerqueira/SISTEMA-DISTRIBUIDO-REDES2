@@ -58,6 +58,7 @@ type Requisicao struct {
 	Estado         string      `json:"estado"`
 	CarimboTempo   time.Time   `json:"carimbo_tempo"`
 	Prioridade     int         `json:"prioridade"`
+	GrauCriticidade int        `json:"grau_criticidade"`
 	Tentativas     int         `json:"tentativas"`
 }
 

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"sistema-distribuido-brokers/pkg/utils"
@@ -9,6 +12,15 @@ import (
 	"syscall"
 	"time"
 )
+
+type SensorData struct {
+	ID           string    `json:"id"`
+	Tipo         string    `json:"tipo"`
+	Valor        float64   `json:"valor"`
+	Localizacao  string    `json:"localizacao"`
+	CarimboTempo time.Time `json:"carimbo_tempo"`
+	SetorID      string    `json:"setor_id"`
+}
 
 func main() {
 	idDefault := os.Getenv("SENSOR_ID")
@@ -36,7 +48,14 @@ func main() {
 		utils.RegistrarLog("INFO", "Brokers configurados: %s", *brokers)
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	brokerList := strings.Split(*brokers, ",")
+	if len(brokerList) == 0 {
+		utils.RegistrarLog("ERRO", "Nenhum broker configurado")
+		return
+	}
+
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	sigCh := make(chan os.Signal, 1)
@@ -45,10 +64,73 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			utils.RegistrarLog("INFO", "Sensor %s em operacao", *id)
+			// Gera dados telemétricos aleatórios autônomos
+			dados := gerarDadosTelemetricos(*id, *tipo, *local, rng)
+			
+			// Envia para múltiplos brokers (descentralizado)
+			for _, broker := range brokerList {
+				go func(b string) {
+					if err := enviarDadosTelemetricos(strings.TrimSpace(b), dados); err != nil {
+						utils.RegistrarLog("ERRO", "Falha ao enviar dados para %s: %v", b, err)
+					}
+				}(broker)
+			}
+			
 		case <-sigCh:
 			utils.RegistrarLog("INFO", "Sensor %s finalizado", *id)
 			return
 		}
 	}
+}
+
+func gerarDadosTelemetricos(id, tipo, local string, rng *rand.Rand) SensorData {
+	var valor float64
+	
+	switch strings.ToLower(tipo) {
+	case "movimento":
+		// Gera valores de movimento de 0 a 1
+		valor = rng.Float64()
+	case "temperatura":
+		// Gera temperatura entre -20 e 50 graus
+		valor = -20 + rng.Float64()*70
+	case "pressao":
+		// Gera pressão entre 950 e 1050 hPa
+		valor = 950 + rng.Float64()*100
+	default:
+		valor = rng.Float64()
+	}
+	
+	return SensorData{
+		ID:           id,
+		Tipo:         tipo,
+		Valor:        valor,
+		Localizacao:  local,
+		CarimboTempo: time.Now(),
+		SetorID:      extrairSetorDaLocalizacao(local),
+	}
+}
+
+func extrairSetorDaLocalizacao(local string) string {
+	// Extrai setor da localização (ex: "setor-norte" -> "norte")
+	parts := strings.Split(local, "-")
+	if len(parts) >= 2 {
+		return parts[1]
+	}
+	return "desconhecido"
+}
+
+func enviarDadosTelemetricos(broker string, dados SensorData) error {
+	conn, err := net.DialTimeout("tcp", broker, 3*time.Second)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	dadosJSON, err := json.Marshal(dados)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Write(append(dadosJSON, '\n'))
+	return err
 }

@@ -4,48 +4,160 @@
     container_name: broker1
     environment:
       - BROKER_ID=broker-001
+      - BROKER_HOST=broker1
       - PORT_TCP=:9000
+      - PORT_CTRL=:9100
       - PORT_UDP=:9001
-      - PEERS=broker-002,broker2:9000,broker2:9001,broker-003,broker3:9000,broker3:9001
+      - PEERS=broker-002,broker2:9102,broker2:9003,broker-003,broker3:9104,broker3:9005,broker-004,broker4:9106,broker4:9007
+      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
     ports:
       - "9000:9000"
+      - "9100:9100"
       - "9001:9001/udp"
     networks:
       - broker-network
-    volumes:
-      - broker1-data:/tmp
 
   broker2:
     build: .
     container_name: broker2
     environment:
       - BROKER_ID=broker-002
-      - PORT_TCP=:9000
-      - PORT_UDP=:9001
-      - PEERS=broker-001,broker1:9000,broker1:9001,broker-003,broker3:9000,broker3:9001
+      - BROKER_HOST=broker2
+      - PORT_TCP=:9002
+      - PORT_CTRL=:9102
+      - PORT_UDP=:9003
+      - PEERS=broker-001,broker1:9100,broker1:9001,broker-003,broker3:9104,broker3:9005,broker-004,broker4:9106,broker4:9007
+      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
     ports:
       - "9002:9000"
+      - "9102:9100"
       - "9003:9001/udp"
     networks:
       - broker-network
-    volumes:
-      - broker2-data:/tmp
 
   broker3:
     build: .
     container_name: broker3
     environment:
       - BROKER_ID=broker-003
-      - PORT_TCP=:9000
-      - PORT_UDP=:9001
-      - PEERS=broker-001,broker1:9000,broker1:9001,broker-002,broker2:9000,broker2:9001
+      - BROKER_HOST=broker3
+      - PORT_TCP=:9004
+      - PORT_CTRL=:9104
+      - PORT_UDP=:9005
+      - PEERS=broker-001,broker1:9100,broker1:9001,broker-002,broker2:9102,broker2:9003,broker-004,broker4:9106,broker4:9007
+      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
     ports:
       - "9004:9000"
+      - "9104:9100"
       - "9005:9001/udp"
     networks:
       - broker-network
-    volumes:
-      - broker3-data:/tmp
+
+  broker4:
+    build: .
+    container_name: broker4
+    environment:
+      - BROKER_ID=broker-004
+      - BROKER_HOST=broker4
+      - PORT_TCP=:9006
+      - PORT_CTRL=:9106
+      - PORT_UDP=:9007
+      - PEERS=broker-001,broker1:9100,broker1:9001,broker-002,broker2:9102,broker2:9003,broker-003,broker3:9104,broker3:9005
+      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
+    ports:
+      - "9006:9000"
+      - "9106:9100"
+      - "9007:9001/udp"
+    networks:
+      - broker-network
+
+  drone1:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone1
+    environment:
+      - DRONE_ID=drone-01
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone2:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone2
+    environment:
+      - DRONE_ID=drone-02
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone3:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone3
+    environment:
+      - DRONE_ID=drone-03
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone4:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone4
+    environment:
+      - DRONE_ID=drone-04
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone5:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone5
+    environment:
+      - DRONE_ID=drone-05
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone6:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone6
+    environment:
+      - DRONE_ID=drone-06
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone7:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone7
+    environment:
+      - DRONE_ID=drone-07
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
+
+  drone8:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone8
+    environment:
+      - DRONE_ID=drone-08
+      - DRONE_PORT=:9101
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
 
   sensor1:
     build:
@@ -56,23 +168,10 @@
       - SENSOR_ID=sensor-movimento-01
       - SENSOR_TIPO=movimento
       - LOCALIZACAO=setor-norte
-      - BROKERS=broker1:9000,broker2:9000,broker3:9000
-    depends_on:
-      - broker1
-      - broker2
-      - broker3
-    networks:
-      - broker-network
-    volumes:
-      - dados-sensor1:/tmp
-
+      - BROKERS=broker1:9000,broker2:9000,broker3:9000,broker4:9000
+    depends_on: [broker1, broker2, broker3, broker4]
+    networks: [broker-network]
 
 networks:
   broker-network:
     driver: bridge
-
-volumes:
-  broker1-data:
-  broker2-data:
-  broker3-data:
-  dados-sensor1:

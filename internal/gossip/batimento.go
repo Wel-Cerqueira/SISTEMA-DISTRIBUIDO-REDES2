@@ -92,13 +92,18 @@ func (gb *GerenciadorBatimentos) enviarBatimentos() {
 			go func(v *tipos.Vizinho) {
 				endereco, err := net.ResolveUDPAddr("udp", v.EnderecoUDP)
 				if err != nil {
-					utils.RegistrarLog("ERRO", "EndereÃ§o UDP invÃ¡lido %s: %v", v.EnderecoUDP, err)
+					utils.RegistrarLog("ERRO", "Endereço UDP inválido %s: %v", v.EnderecoUDP, err)
 					return
 				}
 
-				_, err = gb.conexaoUDP.WriteToUDP(dados, endereco)
-				if err != nil {
-					utils.RegistrarLog("AVISO", "Falha ao enviar batimento para %s: %v", v.ID, err)
+				const maxRetries = 3
+				for i := 0; i < maxRetries; i++ {
+					_, err = gb.conexaoUDP.WriteToUDP(dados, endereco)
+					if err == nil {
+						break // Sucesso
+					}
+					utils.RegistrarLog("AVISO", "Tentativa %d: Falha ao enviar batimento para %s: %v", i+1, v.ID, err)
+					time.Sleep(500 * time.Millisecond) // Espera antes de tentar novamente
 				}
 			}(vizinho)
 		}
@@ -124,6 +129,11 @@ func (gb *GerenciadorBatimentos) receberBatimentos() {
 			continue
 		}
 
+		if n == 0 {
+			utils.RegistrarLog("ERRO", "Mensagem vazia recebida, ignorando")
+			continue
+		}
+
 		var batimento tipos.Mensagem
 		if err := json.Unmarshal(buffer[:n], &batimento); err != nil {
 			utils.RegistrarLog("ERRO", "Falha ao desserializar batimento: %v", err)
@@ -132,6 +142,8 @@ func (gb *GerenciadorBatimentos) receberBatimentos() {
 
 		if batimento.Tipo == "BATIMENTO" {
 			gb.processarBatimento(batimento)
+		} else {
+			utils.RegistrarLog("AVISO", "Mensagem desconhecida recebida: %v", batimento.Tipo)
 		}
 	}
 }

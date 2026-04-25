@@ -33,8 +33,8 @@ func NovaEleicaoBully(idBroker string, vizinhos map[string]*tipos.Vizinho) *Algo
 		emEleicao:           false,
 		canalEleicao:        make(chan tipos.Mensagem, 100),
 		canalResultado:      make(chan string, 10),
-		tempoEsperaResposta: 3 * time.Second,
-		tempoEsperaVitoria:  5 * time.Second,
+		tempoEsperaResposta: 5 * time.Second,  // Aumentado para evitar race conditions
+		tempoEsperaVitoria:  8 * time.Second,  // Aumentado para evitar race conditions
 	}
 }
 
@@ -50,12 +50,22 @@ func (ab *AlgoritmoBully) IniciarEleicao() {
 
 	utils.RegistrarLog("INFO", "Broker %s iniciando eleiÃ§Ã£o", ab.idBroker)
 
+	// Espera um tempo aleatório para evitar sincronização de eleições
+	time.Sleep(time.Duration(100+time.Now().UnixNano()%500) * time.Millisecond)
+
 	// Encontra brokers com ID maior
 	brokersMaiores := ab.encontrarBrokersMaiores()
 
 	if len(brokersMaiores) == 0 {
-		// Nenhum broker maior, este se torna lÃ­der
-		ab.declararVitoria()
+		// Nenhum broker maior, verifica se já não há um líder
+		if ab.liderAtual == "" {
+			ab.declararVitoria()
+		} else {
+			ab.mutex.Lock()
+			ab.emEleicao = false
+			ab.mutex.Unlock()
+			utils.RegistrarLog("INFO", "LÃ­der %s jÃ¡ existe, broker %s cancela eleiÃ§Ã£o", ab.liderAtual, ab.idBroker)
+		}
 		return
 	}
 
@@ -71,9 +81,20 @@ func (ab *AlgoritmoBully) IniciarEleicao() {
 			ab.aguardarVitoria()
 		}
 	case <-time.After(ab.tempoEsperaResposta):
-		// Timeout, declara vitÃ³ria
-		utils.RegistrarLog("INFO", "Broker %s timeout aguardando respostas, declarando vitÃ³ria", ab.idBroker)
-		ab.declararVitoria()
+		// Timeout, verifica se ainda não há líder antes de declarar vitória
+		ab.mutex.RLock()
+		liderExistente := ab.liderAtual
+		ab.mutex.RUnlock()
+		
+		if liderExistente == "" {
+			utils.RegistrarLog("INFO", "Broker %s timeout sem respostas, declarando vitÃ³ria", ab.idBroker)
+			ab.declararVitoria()
+		} else {
+			ab.mutex.Lock()
+			ab.emEleicao = false
+			ab.mutex.Unlock()
+			utils.RegistrarLog("INFO", "LÃ­der %s jÃ¡ existe durante timeout, broker %s cancela", liderExistente, ab.idBroker)
+		}
 	}
 }
 
