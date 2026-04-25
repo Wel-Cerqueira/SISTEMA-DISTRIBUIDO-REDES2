@@ -53,7 +53,7 @@ func (fp *FilaPrioridade) Pop() interface{} {
 
 // FilaDistribuida gerencia uma fila distribuída de requisições
 type FilaDistribuida struct {
-	idCorretor         string
+	idBroker         string
 	fila               FilaPrioridade
 	requisicoesPorID   map[string]*ItemFila
 	mutex              sync.RWMutex
@@ -62,9 +62,9 @@ type FilaDistribuida struct {
 }
 
 // NovaFilaDistribuida cria uma nova fila distribuída
-func NovaFilaDistribuida(idCorretor string) *FilaDistribuida {
+func NovaFilaDistribuida(idBroker string) *FilaDistribuida {
 	fd := &FilaDistribuida{
-		idCorretor:         idCorretor,
+		idBroker:         idBroker,
 		fila:               make(FilaPrioridade, 0),
 		requisicoesPorID:   make(map[string]*ItemFila),
 		canalProcessamento: make(chan *tipos.Requisicao, 100),
@@ -98,7 +98,7 @@ func (fd *FilaDistribuida) AdicionarRequisicao(req *tipos.Requisicao) error {
 	fd.requisicoesPorID[req.ID] = item
 	fd.mutex.Unlock()
 
-	utils.RegistrarLog("INFO", "Requisição %s adicionada à fila do corretor %s", req.ID, fd.idCorretor)
+	utils.RegistrarLog("INFO", "Requisição %s adicionada à fila do broker %s", req.ID, fd.idBroker)
 
 	// Notifica processamento
 	fd.notificarProximaRequisicao()
