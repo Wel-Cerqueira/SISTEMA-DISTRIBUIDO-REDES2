@@ -1,4 +1,4 @@
-# Go binaries
+﻿# Go binaries
 /bin/
 # Build directories
 */build/
@@ -9,6 +9,6 @@
 # Executable files
 *.exe
 # Go binaries
-corretor
+broker
 # Vendor directory
 /vendor/

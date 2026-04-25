@@ -1,4 +1,4 @@
-package fila
+﻿package fila
 
 import (
 	"container/heap"
@@ -78,9 +78,13 @@ func NovaFilaDistribuida(idCorretor string) *FilaDistribuida {
 // AdicionarRequisicao adiciona uma requisição à fila
 func (fd *FilaDistribuida) AdicionarRequisicao(req *tipos.Requisicao) error {
 	fd.mutex.Lock()
-	defer fd.mutex.Unlock()
+	if !fd.executando {
+		fd.mutex.Unlock()
+		return nil
+	}
 
 	if _, existe := fd.requisicoesPorID[req.ID]; existe {
+		fd.mutex.Unlock()
 		return nil // Requisição já existe
 	}
 
@@ -92,11 +96,12 @@ func (fd *FilaDistribuida) AdicionarRequisicao(req *tipos.Requisicao) error {
 
 	heap.Push(&fd.fila, item)
 	fd.requisicoesPorID[req.ID] = item
+	fd.mutex.Unlock()
 
 	utils.RegistrarLog("INFO", "Requisição %s adicionada à fila do corretor %s", req.ID, fd.idCorretor)
 
 	// Notifica processamento
-	go fd.notificarProximaRequisicao()
+	fd.notificarProximaRequisicao()
 
 	return nil
 }
@@ -135,6 +140,10 @@ func (fd *FilaDistribuida) notificarProximaRequisicao() {
 	fd.mutex.RLock()
 	defer fd.mutex.RUnlock()
 
+	if !fd.executando || fd.fila.Len() == 0 {
+		return
+	}
+
 	if fd.fila.Len() > 0 {
 		req := fd.fila[0].Requisicao
 		select {
@@ -158,6 +167,11 @@ func (fd *FilaDistribuida) Tamanho() int {
 
 // Parar interrompe a fila distribuída
 func (fd *FilaDistribuida) Parar() {
+	fd.mutex.Lock()
+	defer fd.mutex.Unlock()
+	if !fd.executando {
+		return
+	}
 	fd.executando = false
 	close(fd.canalProcessamento)
 }

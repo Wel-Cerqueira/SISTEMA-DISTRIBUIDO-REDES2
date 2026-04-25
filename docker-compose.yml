@@ -1,59 +1,78 @@
-version: '3.8'
-
-services:
-  corretor1:
+﻿services:
+  broker1:
     build: .
-    container_name: corretor1
+    container_name: broker1
     environment:
-      - BROKER_ID=corretor-001
+      - BROKER_ID=broker-001
       - PORT_TCP=:9000
       - PORT_UDP=:9001
-      - PEERS=corretor-002,corretor2:9000,corretor2:9001,corretor-003,corretor3:9000,corretor3:9001
+      - PEERS=broker-002,broker2:9000,broker2:9001,broker-003,broker3:9000,broker3:9001
     ports:
       - "9000:9000"
       - "9001:9001/udp"
     networks:
-      - rede-corretores
+      - broker-network
     volumes:
-      - dados-corretor1:/tmp
+      - broker1-data:/tmp
 
-  corretor2:
+  broker2:
     build: .
-    container_name: corretor2
+    container_name: broker2
     environment:
-      - BROKER_ID=corretor-002
+      - BROKER_ID=broker-002
       - PORT_TCP=:9000
       - PORT_UDP=:9001
-      - PEERS=corretor-001,corretor1:9000,corretor1:9001,corretor-003,corretor3:9000,corretor3:9001
+      - PEERS=broker-001,broker1:9000,broker1:9001,broker-003,broker3:9000,broker3:9001
     ports:
       - "9002:9000"
       - "9003:9001/udp"
     networks:
-      - rede-corretores
+      - broker-network
     volumes:
-      - dados-corretor2:/tmp
+      - broker2-data:/tmp
 
-  corretor3:
+  broker3:
     build: .
-    container_name: corretor3
+    container_name: broker3
     environment:
-      - BROKER_ID=corretor-003
+      - BROKER_ID=broker-003
       - PORT_TCP=:9000
       - PORT_UDP=:9001
-      - PEERS=corretor-001,corretor1:9000,corretor1:9001,corretor-002,corretor2:9000,corretor2:9001
+      - PEERS=broker-001,broker1:9000,broker1:9001,broker-002,broker2:9000,broker2:9001
     ports:
       - "9004:9000"
       - "9005:9001/udp"
     networks:
-      - rede-corretores
+      - broker-network
     volumes:
-      - dados-corretor3:/tmp
+      - broker3-data:/tmp
+
+  sensor1:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor1
+    environment:
+      - SENSOR_ID=sensor-movimento-01
+      - SENSOR_TIPO=movimento
+      - LOCALIZACAO=setor-norte
+      - BROKERS=broker1:9000,broker2:9000,broker3:9000
+    depends_on:
+      - broker1
+      - broker2
+      - broker3
+    networks:
+      - broker-network
+    volumes:
+      - dados-sensor1:/tmp
+
 
 networks:
-  rede-corretores:
+  broker-network:
     driver: bridge
 
 volumes:
-  dados-corretor1:
-  dados-corretor2:
-  dados-corretor3:
+  broker1-data:
+  broker2-data:
+  broker3-data:
+  dados-sensor1:

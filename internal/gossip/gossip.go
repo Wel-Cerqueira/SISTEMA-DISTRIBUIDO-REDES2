@@ -1,45 +1,50 @@
-package gossip
+﻿package gossip
 
 import (
 	"encoding/json"
+	"math/rand"
 	"net"
 	"sistema-distribuido-brokers/pkg/tipos"
 	"sistema-distribuido-brokers/pkg/utils"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // ProtocoloGossip implementa o protocolo de gossip para disseminação de estado
 type ProtocoloGossip struct {
-	idCorretor       string
-	estado           *tipos.EstadoCorretor
+	idBroker         string
+	estado           *tipos.EstadoBroker
 	vizinhos         map[string]*tipos.Vizinho
 	intervaloGossip  time.Duration
 	mutex            sync.RWMutex
-	executando       bool
-	canalAtualizacao chan *tipos.EstadoCorretor
+	executando       atomic.Bool
+	canalAtualizacao chan *tipos.EstadoBroker
+	pararCh          chan struct{}
+	pararOnce        sync.Once
 }
 
 // NovoProtocoloGossip cria uma nova instância do protocolo gossip
-func NovoProtocoloGossip(idCorretor string, estado *tipos.EstadoCorretor,
+func NovoProtocoloGossip(idBroker string, estado *tipos.EstadoBroker,
 	vizinhos map[string]*tipos.Vizinho) *ProtocoloGossip {
 
 	return &ProtocoloGossip{
-		idCorretor:       idCorretor,
+		idBroker:         idBroker,
 		estado:           estado,
 		vizinhos:         vizinhos,
 		intervaloGossip:  5 * time.Second,
-		executando:       true,
-		canalAtualizacao: make(chan *tipos.EstadoCorretor, 10),
+		canalAtualizacao: make(chan *tipos.EstadoBroker, 10),
+		pararCh:          make(chan struct{}),
 	}
 }
 
 // Iniciar inicia o protocolo gossip
 func (pg *ProtocoloGossip) Iniciar() {
+	pg.executando.Store(true)
 	go pg.disseminarEstado()
 	go pg.receberAtualizacoes()
 
-	utils.RegistrarLog("INFO", "Protocolo gossip iniciado para corretor %s", pg.idCorretor)
+	utils.RegistrarLog("INFO", "Protocolo gossip iniciado para broker %s", pg.idBroker)
 }
 
 // disseminarEstado dissemina periodicamente o estado para vizinhos aleatórios
@@ -47,11 +52,16 @@ func (pg *ProtocoloGossip) disseminarEstado() {
 	ticker := time.NewTicker(pg.intervaloGossip)
 	defer ticker.Stop()
 
-	for pg.executando {
-		<-ticker.C
+	for pg.executando.Load() {
+		select {
+		case <-ticker.C:
+		case <-pg.pararCh:
+			return
+		}
 
 		pg.mutex.RLock()
 		vizinhosAtivos := pg.obterVizinhosAtivos()
+		estadoSnapshot := *pg.estado
 		pg.mutex.RUnlock()
 
 		if len(vizinhosAtivos) == 0 {
@@ -63,8 +73,8 @@ func (pg *ProtocoloGossip) disseminarEstado() {
 
 		mensagem := tipos.Mensagem{
 			Tipo:         "GOSSIP",
-			OrigemID:     pg.idCorretor,
-			Dados:        pg.estado,
+			OrigemID:     pg.idBroker,
+			Dados:        estadoSnapshot,
 			CarimboTempo: time.Now(),
 		}
 
@@ -78,10 +88,12 @@ func (pg *ProtocoloGossip) disseminarEstado() {
 
 // receberAtualizacoes processa atualizações de estado recebidas
 func (pg *ProtocoloGossip) receberAtualizacoes() {
-	for pg.executando {
+	for pg.executando.Load() {
 		select {
 		case novoEstado := <-pg.canalAtualizacao:
 			pg.mesclarEstado(novoEstado)
+		case <-pg.pararCh:
+			return
 		}
 	}
 }
@@ -92,18 +104,25 @@ func (pg *ProtocoloGossip) ProcessarMensagemGossip(msg tipos.Mensagem) {
 		return
 	}
 
-	if estadoRecebido, ok := msg.Dados.(*tipos.EstadoCorretor); ok {
-		if estadoRecebido.Versao > pg.estado.Versao {
-			select {
-			case pg.canalAtualizacao <- estadoRecebido:
-			default:
-			}
+	estadoRecebido, ok := pg.extrairEstado(msg.Dados)
+	if !ok {
+		return
+	}
+
+	pg.mutex.RLock()
+	versaoAtual := pg.estado.Versao
+	pg.mutex.RUnlock()
+
+	if estadoRecebido.Versao > versaoAtual {
+		select {
+		case pg.canalAtualizacao <- estadoRecebido:
+		default:
 		}
 	}
 }
 
 // mesclarEstado mescla um estado recebido com o estado local
-func (pg *ProtocoloGossip) mesclarEstado(novoEstado *tipos.EstadoCorretor) {
+func (pg *ProtocoloGossip) mesclarEstado(novoEstado *tipos.EstadoBroker) {
 	pg.mutex.Lock()
 	defer pg.mutex.Unlock()
 
@@ -121,7 +140,7 @@ func (pg *ProtocoloGossip) mesclarEstado(novoEstado *tipos.EstadoCorretor) {
 
 	// Atualiza informações de vizinhos
 	for id, vizinho := range novoEstado.Vizinhos {
-		if id != pg.idCorretor {
+		if id != pg.idBroker {
 			if vizinhoLocal, existe := pg.estado.Vizinhos[id]; !existe ||
 				vizinho.VersaoEstado > vizinhoLocal.VersaoEstado {
 				pg.estado.Vizinhos[id] = vizinho
@@ -154,16 +173,13 @@ func (pg *ProtocoloGossip) selecionarVizinhosAleatorios(vizinhos []*tipos.Vizinh
 		return vizinhos
 	}
 
-	// Implementação simples de seleção aleatória
-	selecionados := make([]*tipos.Vizinho, n)
-	permutacao := time.Now().UnixNano()
-
-	for i := 0; i < n; i++ {
-		indice := int(permutacao+int64(i)) % len(vizinhos)
-		selecionados[i] = vizinhos[indice]
-	}
-
-	return selecionados
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	embaralhados := make([]*tipos.Vizinho, len(vizinhos))
+	copy(embaralhados, vizinhos)
+	rng.Shuffle(len(embaralhados), func(i, j int) {
+		embaralhados[i], embaralhados[j] = embaralhados[j], embaralhados[i]
+	})
+	return embaralhados[:n]
 }
 
 // enviarEstadoUDP envia estado via UDP para um vizinho
@@ -190,5 +206,28 @@ func (pg *ProtocoloGossip) enviarEstadoUDP(endereco string, msg tipos.Mensagem) 
 
 // Parar interrompe o protocolo gossip
 func (pg *ProtocoloGossip) Parar() {
-	pg.executando = false
+	pg.executando.Store(false)
+	pg.pararOnce.Do(func() {
+		close(pg.pararCh)
+	})
+}
+
+func (pg *ProtocoloGossip) extrairEstado(dados interface{}) (*tipos.EstadoBroker, bool) {
+	switch v := dados.(type) {
+	case *tipos.EstadoBroker:
+		return v, true
+	case tipos.EstadoBroker:
+		estado := v
+		return &estado, true
+	default:
+		bytes, err := json.Marshal(v)
+		if err != nil {
+			return nil, false
+		}
+		var estado tipos.EstadoBroker
+		if err := json.Unmarshal(bytes, &estado); err != nil {
+			return nil, false
+		}
+		return &estado, true
+	}
 }

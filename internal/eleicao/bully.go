@@ -1,17 +1,19 @@
-package eleicao
+﻿package eleicao
 
 import (
 	"encoding/json"
 	"net"
+	"regexp"
+	"strconv"
 	"sistema-distribuido-brokers/pkg/tipos"
 	"sistema-distribuido-brokers/pkg/utils"
 	"sync"
 	"time"
 )
 
-// AlgoritmoBully implementa o algoritmo de eleição Bully
+// AlgoritmoBully implementa o algoritmo de eleiÃ§Ã£o Bully
 type AlgoritmoBully struct {
-	idCorretor          string
+	idBroker          string
 	liderAtual          string
 	vizinhos            map[string]*tipos.Vizinho
 	emEleicao           bool
@@ -22,10 +24,10 @@ type AlgoritmoBully struct {
 	tempoEsperaVitoria  time.Duration
 }
 
-// NovaEleicaoBully cria uma nova instância do algoritmo Bully
-func NovaEleicaoBully(idCorretor string, vizinhos map[string]*tipos.Vizinho) *AlgoritmoBully {
+// NovaEleicaoBully cria uma nova instÃ¢ncia do algoritmo Bully
+func NovaEleicaoBully(idBroker string, vizinhos map[string]*tipos.Vizinho) *AlgoritmoBully {
 	return &AlgoritmoBully{
-		idCorretor:          idCorretor,
+		idBroker:          idBroker,
 		liderAtual:          "",
 		vizinhos:            vizinhos,
 		emEleicao:           false,
@@ -36,7 +38,7 @@ func NovaEleicaoBully(idCorretor string, vizinhos map[string]*tipos.Vizinho) *Al
 	}
 }
 
-// IniciarEleicao inicia o processo de eleição
+// IniciarEleicao inicia o processo de eleiÃ§Ã£o
 func (ab *AlgoritmoBully) IniciarEleicao() {
 	ab.mutex.Lock()
 	if ab.emEleicao {
@@ -46,52 +48,52 @@ func (ab *AlgoritmoBully) IniciarEleicao() {
 	ab.emEleicao = true
 	ab.mutex.Unlock()
 
-	utils.RegistrarLog("INFO", "Corretor %s iniciando eleição", ab.idCorretor)
+	utils.RegistrarLog("INFO", "Broker %s iniciando eleiÃ§Ã£o", ab.idBroker)
 
-	// Encontra corretores com ID maior
-	corretoresMaiores := ab.encontrarCorretoresMaiores()
+	// Encontra brokers com ID maior
+	brokersMaiores := ab.encontrarBrokersMaiores()
 
-	if len(corretoresMaiores) == 0 {
-		// Nenhum corretor maior, este se torna líder
+	if len(brokersMaiores) == 0 {
+		// Nenhum broker maior, este se torna lÃ­der
 		ab.declararVitoria()
 		return
 	}
 
-	// Envia mensagem de eleição para corretores maiores
-	ab.enviarMensagensEleicao(corretoresMaiores)
+	// Envia mensagem de eleiÃ§Ã£o para brokers maiores
+	ab.enviarMensagensEleicao(brokersMaiores)
 
 	// Aguarda respostas
 	select {
 	case resposta := <-ab.canalEleicao:
 		if resposta.Tipo == "RESPOSTA_ELEICAO" {
-			utils.RegistrarLog("INFO", "Corretor %s recebeu resposta de eleição de %s",
-				ab.idCorretor, resposta.OrigemID)
+			utils.RegistrarLog("INFO", "Broker %s recebeu resposta de eleiÃ§Ã£o de %s",
+				ab.idBroker, resposta.OrigemID)
 			ab.aguardarVitoria()
 		}
 	case <-time.After(ab.tempoEsperaResposta):
-		// Timeout, declara vitória
-		utils.RegistrarLog("INFO", "Corretor %s timeout aguardando respostas, declarando vitória", ab.idCorretor)
+		// Timeout, declara vitÃ³ria
+		utils.RegistrarLog("INFO", "Broker %s timeout aguardando respostas, declarando vitÃ³ria", ab.idBroker)
 		ab.declararVitoria()
 	}
 }
 
-// aguardarVitoria aguarda a declaração de vitória de um corretor maior
+// aguardarVitoria aguarda a declaraÃ§Ã£o de vitÃ³ria de um broker maior
 func (ab *AlgoritmoBully) aguardarVitoria() {
-	utils.RegistrarLog("INFO", "Corretor %s aguardando anúncio de vitória", ab.idCorretor)
+	utils.RegistrarLog("INFO", "Broker %s aguardando anÃºncio de vitÃ³ria", ab.idBroker)
 
 	// Aguarda mensagem de VITORIA ou timeout
 	select {
 	case msg := <-ab.canalEleicao:
 		if msg.Tipo == "VITORIA" {
-			utils.RegistrarLog("INFO", "Corretor %s recebeu anúncio de vitória de %s",
-				ab.idCorretor, msg.OrigemID)
+			utils.RegistrarLog("INFO", "Broker %s recebeu anÃºncio de vitÃ³ria de %s",
+				ab.idBroker, msg.OrigemID)
 			ab.mutex.Lock()
 			ab.emEleicao = false
 			ab.mutex.Unlock()
 		}
 	case <-time.After(ab.tempoEsperaVitoria):
-		// Timeout aguardando vitória, inicia nova eleição
-		utils.RegistrarLog("AVISO", "Corretor %s timeout aguardando vitória, iniciando nova eleição", ab.idCorretor)
+		// Timeout aguardando vitÃ³ria, inicia nova eleiÃ§Ã£o
+		utils.RegistrarLog("AVISO", "Broker %s timeout aguardando vitÃ³ria, iniciando nova eleiÃ§Ã£o", ab.idBroker)
 		ab.mutex.Lock()
 		ab.emEleicao = false
 		ab.mutex.Unlock()
@@ -99,15 +101,15 @@ func (ab *AlgoritmoBully) aguardarVitoria() {
 	}
 }
 
-// encontrarCorretoresMaiores retorna lista de corretores com ID maior
-func (ab *AlgoritmoBully) encontrarCorretoresMaiores() []*tipos.Vizinho {
+// encontrarBrokersMaiores retorna lista de brokers com ID maior
+func (ab *AlgoritmoBully) encontrarBrokersMaiores() []*tipos.Vizinho {
 	var maiores []*tipos.Vizinho
 
 	ab.mutex.RLock()
 	defer ab.mutex.RUnlock()
 
 	for _, vizinho := range ab.vizinhos {
-		if vizinho.Ativo && vizinho.ID > ab.idCorretor {
+		if vizinho.Ativo && compararPrioridadeID(vizinho.ID, ab.idBroker) > 0 {
 			maiores = append(maiores, vizinho)
 		}
 	}
@@ -115,48 +117,48 @@ func (ab *AlgoritmoBully) encontrarCorretoresMaiores() []*tipos.Vizinho {
 	return maiores
 }
 
-// enviarMensagensEleicao envia mensagens de eleição para corretores maiores
-func (ab *AlgoritmoBully) enviarMensagensEleicao(corretores []*tipos.Vizinho) {
+// enviarMensagensEleicao envia mensagens de eleiÃ§Ã£o para brokers maiores
+func (ab *AlgoritmoBully) enviarMensagensEleicao(brokers []*tipos.Vizinho) {
 	mensagem := tipos.Mensagem{
 		Tipo:         "ELEICAO",
-		OrigemID:     ab.idCorretor,
+		OrigemID:     ab.idBroker,
 		CarimboTempo: time.Now(),
 	}
 
-	for _, corretor := range corretores {
+	for _, broker := range brokers {
 		go func(c *tipos.Vizinho) {
 			if err := ab.enviarMensagemTCP(c.EnderecoTCP, mensagem); err != nil {
-				utils.RegistrarLog("ERRO", "Falha ao enviar eleição para %s: %v", c.ID, err)
+				utils.RegistrarLog("ERRO", "Falha ao enviar eleiÃ§Ã£o para %s: %v", c.ID, err)
 			}
-		}(corretor)
+		}(broker)
 	}
 }
 
-// declararVitoria declara este corretor como vencedor da eleição
+// declararVitoria declara este broker como vencedor da eleiÃ§Ã£o
 func (ab *AlgoritmoBully) declararVitoria() {
 	ab.mutex.Lock()
-	ab.liderAtual = ab.idCorretor
+	ab.liderAtual = ab.idBroker
 	ab.emEleicao = false
 	ab.mutex.Unlock()
 
-	utils.RegistrarLog("INFO", "Corretor %s se declarou líder", ab.idCorretor)
+	utils.RegistrarLog("INFO", "Broker %s se declarou lÃ­der", ab.idBroker)
 
-	// Anuncia vitória para todos os vizinhos
+	// Anuncia vitÃ³ria para todos os vizinhos
 	ab.anunciarVitoria()
 
 	// Notifica resultado
 	select {
-	case ab.canalResultado <- ab.idCorretor:
+	case ab.canalResultado <- ab.idBroker:
 	default:
 	}
 }
 
-// anunciarVitoria anuncia vitória para todos os vizinhos
+// anunciarVitoria anuncia vitÃ³ria para todos os vizinhos
 func (ab *AlgoritmoBully) anunciarVitoria() {
 	mensagem := tipos.Mensagem{
 		Tipo:         "VITORIA",
-		OrigemID:     ab.idCorretor,
-		Dados:        map[string]string{"lider": ab.idCorretor},
+		OrigemID:     ab.idBroker,
+		Dados:        map[string]string{"lider": ab.idBroker},
 		CarimboTempo: time.Now(),
 	}
 
@@ -167,21 +169,21 @@ func (ab *AlgoritmoBully) anunciarVitoria() {
 		if vizinho.Ativo {
 			go func(v *tipos.Vizinho) {
 				if err := ab.enviarMensagemTCP(v.EnderecoTCP, mensagem); err != nil {
-					utils.RegistrarLog("ERRO", "Falha ao anunciar vitória para %s: %v", v.ID, err)
+					utils.RegistrarLog("ERRO", "Falha ao anunciar vitÃ³ria para %s: %v", v.ID, err)
 				}
 			}(vizinho)
 		}
 	}
 }
 
-// ProcessarMensagemEleicao processa mensagens relacionadas à eleição
+// ProcessarMensagemEleicao processa mensagens relacionadas Ã  eleiÃ§Ã£o
 func (ab *AlgoritmoBully) ProcessarMensagemEleicao(msg tipos.Mensagem) {
 	switch msg.Tipo {
 	case "ELEICAO":
-		// Responde à mensagem de eleição
+		// Responde Ã  mensagem de eleiÃ§Ã£o
 		resposta := tipos.Mensagem{
 			Tipo:         "RESPOSTA_ELEICAO",
-			OrigemID:     ab.idCorretor,
+			OrigemID:     ab.idBroker,
 			DestinoID:    msg.OrigemID,
 			CarimboTempo: time.Now(),
 		}
@@ -194,7 +196,7 @@ func (ab *AlgoritmoBully) ProcessarMensagemEleicao(msg tipos.Mensagem) {
 			ab.enviarMensagemTCP(vizinho.EnderecoTCP, resposta)
 		}
 
-		// Inicia própria eleição se não estiver em uma
+		// Inicia prÃ³pria eleiÃ§Ã£o se nÃ£o estiver em uma
 		ab.mutex.RLock()
 		emEleicao := ab.emEleicao
 		ab.mutex.RUnlock()
@@ -208,24 +210,28 @@ func (ab *AlgoritmoBully) ProcessarMensagemEleicao(msg tipos.Mensagem) {
 		select {
 		case ab.canalEleicao <- msg:
 		default:
-			utils.RegistrarLog("AVISO", "Canal de eleição cheio, descartando mensagem de %s", msg.OrigemID)
+			utils.RegistrarLog("AVISO", "Canal de eleiÃ§Ã£o cheio, descartando mensagem de %s", msg.OrigemID)
 		}
 
 	case "VITORIA":
-		// Atualiza líder
+		// Atualiza lÃ­der
 		if dados, ok := msg.Dados.(map[string]interface{}); ok {
 			if lider, existe := dados["lider"]; existe {
-				liderStr := lider.(string)
+				liderStr, ok := lider.(string)
+				if !ok || liderStr == "" {
+					utils.RegistrarLog("AVISO", "Mensagem VITORIA invÃ¡lida recebida de %s", msg.OrigemID)
+					return
+				}
 
 				ab.mutex.Lock()
 				ab.liderAtual = liderStr
 				ab.emEleicao = false
 				ab.mutex.Unlock()
 
-				utils.RegistrarLog("INFO", "Corretor %s reconhece %s como líder",
-					ab.idCorretor, liderStr)
+				utils.RegistrarLog("INFO", "Broker %s reconhece %s como lÃ­der",
+					ab.idBroker, liderStr)
 
-				// Encaminha para o canal de eleição também
+				// Encaminha para o canal de eleiÃ§Ã£o tambÃ©m
 				select {
 				case ab.canalEleicao <- msg:
 				default:
@@ -257,7 +263,7 @@ func (ab *AlgoritmoBully) enviarMensagemTCP(endereco string, msg tipos.Mensagem)
 	return err
 }
 
-// ObterLiderAtual retorna o líder atual
+// ObterLiderAtual retorna o lÃ­der atual
 func (ab *AlgoritmoBully) ObterLiderAtual() string {
 	ab.mutex.RLock()
 	defer ab.mutex.RUnlock()
@@ -269,7 +275,7 @@ func (ab *AlgoritmoBully) ObterCanalResultado() <-chan string {
 	return ab.canalResultado
 }
 
-// EstaEmEleicao retorna se o corretor está participando de uma eleição
+// EstaEmEleicao retorna se o broker estÃ¡ participando de uma eleiÃ§Ã£o
 func (ab *AlgoritmoBully) EstaEmEleicao() bool {
 	ab.mutex.RLock()
 	defer ab.mutex.RUnlock()
@@ -282,3 +288,45 @@ func (ab *AlgoritmoBully) AtualizarVizinhos(vizinhos map[string]*tipos.Vizinho) 
 	defer ab.mutex.Unlock()
 	ab.vizinhos = vizinhos
 }
+
+var sufixoNumericoID = regexp.MustCompile(`(\d+)$`)
+
+// compararPrioridadeID compara IDs no formato "nome-<numero>".
+// Retorna 1 se a > b, -1 se a < b e 0 se iguais.
+func compararPrioridadeID(a, b string) int {
+	na, oka := extrairNumeroID(a)
+	nb, okb := extrairNumeroID(b)
+	if oka && okb {
+		switch {
+		case na > nb:
+			return 1
+		case na < nb:
+			return -1
+		default:
+			return 0
+		}
+	}
+
+	// Fallback lexicogrÃ¡fico para IDs fora do padrÃ£o.
+	switch {
+	case a > b:
+		return 1
+	case a < b:
+		return -1
+	default:
+		return 0
+	}
+}
+
+func extrairNumeroID(id string) (int, bool) {
+	match := sufixoNumericoID.FindStringSubmatch(id)
+	if len(match) < 2 {
+		return 0, false
+	}
+	n, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0, false
+	}
+	return n, true
+}
+
