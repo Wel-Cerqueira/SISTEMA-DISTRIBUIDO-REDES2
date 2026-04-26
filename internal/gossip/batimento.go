@@ -12,7 +12,7 @@ import (
 
 // GerenciadorBatimentos gerencia batimentos cardÃ­acos entre brokers
 type GerenciadorBatimentos struct {
-	idBroker         string
+	idBroker           string
 	vizinhos           map[string]*tipos.Vizinho
 	conexaoUDP         *net.UDPConn
 	intervaloBatimento time.Duration
@@ -25,9 +25,7 @@ type GerenciadorBatimentos struct {
 }
 
 // NovoGerenciadorBatimentos cria um novo gerenciador de batimentos
-func NovoGerenciadorBatimentos(idBroker string, vizinhos map[string]*tipos.Vizinho,
-	portaUDP string) (*GerenciadorBatimentos, error) {
-
+func NovoGerenciadorBatimentos(idBroker string, vizinhos map[string]*tipos.Vizinho, portaUDP string) (*GerenciadorBatimentos, error) {
 	endereco, err := net.ResolveUDPAddr("udp", portaUDP)
 	if err != nil {
 		return nil, err
@@ -39,7 +37,7 @@ func NovoGerenciadorBatimentos(idBroker string, vizinhos map[string]*tipos.Vizin
 	}
 
 	return &GerenciadorBatimentos{
-		idBroker:         idBroker,
+		idBroker:           idBroker,
 		vizinhos:           vizinhos,
 		conexaoUDP:         conexao,
 		intervaloBatimento: 2 * time.Second,
@@ -113,7 +111,7 @@ func (gb *GerenciadorBatimentos) enviarBatimentos() {
 
 // receberBatimentos recebe batimentos de outros brokers
 func (gb *GerenciadorBatimentos) receberBatimentos() {
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 65536)
 
 	for gb.executando.Load() {
 		gb.conexaoUDP.SetReadDeadline(time.Now().Add(1 * time.Second))
@@ -134,9 +132,11 @@ func (gb *GerenciadorBatimentos) receberBatimentos() {
 			continue
 		}
 
+		dados := buffer[:n]
+
 		var batimento tipos.Mensagem
-		if err := json.Unmarshal(buffer[:n], &batimento); err != nil {
-			utils.RegistrarLog("ERRO", "Falha ao desserializar batimento: %v", err)
+		if err := json.Unmarshal(dados, &batimento); err != nil {
+			utils.RegistrarLog("ERRO", "Falha ao desserializar batimento (%d bytes): %v", n, err)
 			continue
 		}
 
@@ -205,8 +205,7 @@ func (gb *GerenciadorBatimentos) Parar() {
 	}
 }
 
-// ObterCanalFalha retorna o canal de notificaÃ§Ã£o de falhas
+// ObterCanalFalha retorna o canal de notificação de falhas
 func (gb *GerenciadorBatimentos) ObterCanalFalha() <-chan string {
 	return gb.canalFalha
 }
-

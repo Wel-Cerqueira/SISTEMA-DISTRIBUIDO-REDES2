@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net"
 	"os"
@@ -66,7 +67,7 @@ func main() {
 		case <-ticker.C:
 			// Gera dados telemétricos aleatórios autônomos
 			dados := gerarDadosTelemetricos(*id, *tipo, *local, rng)
-			
+
 			// Envia para múltiplos brokers (descentralizado)
 			for _, broker := range brokerList {
 				go func(b string) {
@@ -75,7 +76,7 @@ func main() {
 					}
 				}(broker)
 			}
-			
+
 		case <-sigCh:
 			utils.RegistrarLog("INFO", "Sensor %s finalizado", *id)
 			return
@@ -85,7 +86,7 @@ func main() {
 
 func gerarDadosTelemetricos(id, tipo, local string, rng *rand.Rand) SensorData {
 	var valor float64
-	
+
 	switch strings.ToLower(tipo) {
 	case "movimento":
 		// Gera valores de movimento de 0 a 1
@@ -99,7 +100,7 @@ func gerarDadosTelemetricos(id, tipo, local string, rng *rand.Rand) SensorData {
 	default:
 		valor = rng.Float64()
 	}
-	
+
 	return SensorData{
 		ID:           id,
 		Tipo:         tipo,
@@ -119,6 +120,7 @@ func extrairSetorDaLocalizacao(local string) string {
 	return "desconhecido"
 }
 
+// No sensor - aguardar confirmação
 func enviarDadosTelemetricos(broker string, dados SensorData) error {
 	conn, err := net.DialTimeout("tcp", broker, 3*time.Second)
 	if err != nil {
@@ -126,11 +128,18 @@ func enviarDadosTelemetricos(broker string, dados SensorData) error {
 	}
 	defer conn.Close()
 
-	dadosJSON, err := json.Marshal(dados)
-	if err != nil {
+	dadosJSON, _ := json.Marshal(dados)
+	conn.Write(append(dadosJSON, '\n'))
+
+	// Aguarda ACK do broker
+	var ack map[string]interface{}
+	decoder := json.NewDecoder(conn)
+	if err := decoder.Decode(&ack); err != nil {
 		return err
 	}
 
-	_, err = conn.Write(append(dadosJSON, '\n'))
-	return err
+	if ack["status"] != "recebido" {
+		return fmt.Errorf("ack invalido: %v", ack)
+	}
+	return nil
 }
