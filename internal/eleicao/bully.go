@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sistema-distribuido-brokers/pkg/tipos"
 	"sistema-distribuido-brokers/pkg/utils"
+	"strings"
 	"sync"
 	"time"
 )
@@ -149,10 +150,25 @@ func (ab *AlgoritmoBully) enviarMensagensEleicao(brokers []*tipos.Vizinho) {
 	for _, broker := range brokers {
 		go func(c *tipos.Vizinho) {
 			if err := ab.enviarMensagemTCP(c.EnderecoTCP, mensagem); err != nil {
-				utils.RegistrarLog("ERRO", "Falha ao enviar eleiÃ§Ã£o para %s: %v", c.ID, err)
+				// Durante startup, "connection refused" Ã© esperado - outros brokers podem nÃ£o estar prontos
+				// Log como DEBUG ao invÃ©s de ERRO para evitar poluiÃ§Ã£o de logs
+				if isConnectionRefused(err) {
+					utils.RegistrarLog("DEBUG", "Broker %s ainda nÃ£o estÃ¡ disponÃ­vel para eleiÃ§Ã£o: %s", c.ID, err)
+				} else {
+					utils.RegistrarLog("ERRO", "Falha ao enviar eleiÃ§Ã£o para %s: %v", c.ID, err)
+				}
 			}
 		}(broker)
 	}
+}
+
+// isConnectionRefused verifica se o erro Ã© "connection refused"
+func isConnectionRefused(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "Connection refused")
 }
 
 // declararVitoria declara este broker como vencedor da eleiÃ§Ã£o

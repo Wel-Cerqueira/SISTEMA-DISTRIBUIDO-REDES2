@@ -1,0 +1,115 @@
+═══════════════════════════════════════════════════════════════════
+  4 BROKERS + 8 DRONES + 50 SENSORES - COMANDOS MANUAIS
+═══════════════════════════════════════════════════════════════════
+
+⚠️  Execute cada comando em um TERMINAL SEPARADO
+⚠️  Aguarde 3-5 segundos entre cada broker
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 1 - Broker 001 (Portas: 9000/9001/9100)
+───────────────────────────────────────────────────────────────────
+./broker -id=broker-001 -porta-tcp=:9000 -porta-udp=:9001 -porta-ctrl=:9100 -drones='{"drone-01":"localhost:9101","drone-02":"localhost:9102","drone-03":"localhost:9103","drone-04":"localhost:9104","drone-05":"localhost:9105","drone-06":"localhost:9106","drone-07":"localhost:9107","drone-08":"localhost:9108"}' -peers=broker-002,localhost:9002,localhost:9003,broker-003,localhost:9004,localhost:9005,broker-004,localhost:9006,localhost:9007
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 2 - Broker 002 (Portas: 9002/9003/9102)
+───────────────────────────────────────────────────────────────────
+./broker -id=broker-002 -porta-tcp=:9002 -porta-udp=:9003 -porta-ctrl=:9102 -drones='{"drone-01":"localhost:9101","drone-02":"localhost:9102","drone-03":"localhost:9103","drone-04":"localhost:9104","drone-05":"localhost:9105","drone-06":"localhost:9106","drone-07":"localhost:9107","drone-08":"localhost:9108"}' -peers=broker-001,localhost:9000,localhost:9001,broker-003,localhost:9004,localhost:9005,broker-004,localhost:9006,localhost:9007
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 3 - Broker 003 (Portas: 9004/9005/9104)
+───────────────────────────────────────────────────────────────────
+./broker -id=broker-003 -porta-tcp=:9004 -porta-udp=:9005 -porta-ctrl=:9104 -drones='{"drone-01":"localhost:9101","drone-02":"localhost:9102","drone-03":"localhost:9103","drone-04":"localhost:9104","drone-05":"localhost:9105","drone-06":"localhost:9106","drone-07":"localhost:9107","drone-08":"localhost:9108"}' -peers=broker-001,localhost:9000,localhost:9001,broker-002,localhost:9002,localhost:9003,broker-004,localhost:9006,localhost:9007
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 4 - Broker 004 (Portas: 9006/9007/9106)
+───────────────────────────────────────────────────────────────────
+./broker -id=broker-004 -porta-tcp=:9006 -porta-udp=:9007 -porta-ctrl=:9106 -drones='{"drone-01":"localhost:9101","drone-02":"localhost:9102","drone-03":"localhost:9103","drone-04":"localhost:9104","drone-05":"localhost:9105","drone-06":"localhost:9106","drone-07":"localhost:9107","drone-08":"localhost:9108"}' -peers=broker-001,localhost:9000,localhost:9001,broker-002,localhost:9002,localhost:9003,broker-003,localhost:9004,localhost:9005
+
+═══════════════════════════════════════════════════════════════════
+                    ESPERE 10 SEGUNDOS...
+                    VERIFIQUE O LÍDER NO TERMINAL 1
+═══════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 5 - Drone 01 (Porta 9101)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-01 -port=:9101
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 6 - Drone 02 (Porta 9102)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-02 -port=:9102
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 7 - Drone 03 (Porta 9103)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-03 -port=:9103
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 8 - Drone 04 (Porta 9104)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-04 -port=:9104
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 9 - Drone 05 (Porta 9105)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-05 -port=:9105
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 10 - Drone 06 (Porta 9106)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-06 -port=:9106
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 11 - Drone 07 (Porta 9107)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-07 -port=:9107
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 12 - Drone 08 (Porta 9108)
+───────────────────────────────────────────────────────────────────
+./drone -id=drone-08 -port=:9108
+
+═══════════════════════════════════════════════════════════════════
+                    ESPERE 5 SEGUNDOS...
+═══════════════════════════════════════════════════════════════════
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 13 - Sensor Movimento (Setor Norte)
+───────────────────────────────────────────────────────────────────
+./sensor -id=sensor-mov-norte -tipo=movimento -local=setor-norte -brokers=localhost:9000,localhost:9002,localhost:9004,localhost:9006
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 14 - Sensor Temperatura (Setor Sul)
+───────────────────────────────────────────────────────────────────
+./sensor -id=sensor-temp-sul -tipo=temperatura -local=setor-sul -brokers=localhost:9000,localhost:9002,localhost:9004,localhost:9006
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 15 - Sensor Pressão (Setor Leste)
+───────────────────────────────────────────────────────────────────
+./sensor -id=sensor-pressao-leste -tipo=pressao -local=setor-leste -brokers=localhost:9000,localhost:9002,localhost:9004,localhost:9006
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 16 - Sensor Movimento (Setor Oeste)
+───────────────────────────────────────────────────────────────────
+./sensor -id=sensor-mov-oeste -tipo=movimento -local=setor-oeste -brokers=localhost:9000,localhost:9002,localhost:9004,localhost:9006
+
+───────────────────────────────────────────────────────────────────
+TERMINAL 17 - Sensor Temperatura (Setor Centro)
+───────────────────────────────────────────────────────────────────
+./sensor -id=sensor-temp-centro -tipo=temperatura -local=setor-centro -brokers=localhost:9000,localhost:9002,localhost:9004,localhost:9006
+
+═══════════════════════════════════════════════════════════════════
+                         COMANDOS ÚTEIS
+═══════════════════════════════════════════════════════════════════
+
+# Ver processos rodando:
+ps aux | grep -E "(broker|drone|sensor)" | grep -v grep
+
+# Ver portas em uso:
+netstat -tulpn | grep -E "90(00|01|02|03|04|05|06|07)" || ss -tulpn | grep -E "90(00|01|02|03|04|05|06|07)"
+
+# Matar todos os processos:
+pkill -f "./broker" && pkill -f "./drone" && pkill -f "./sensor"
+
+═══════════════════════════════════════════════════════════════════

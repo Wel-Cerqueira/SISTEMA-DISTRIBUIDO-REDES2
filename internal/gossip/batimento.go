@@ -22,6 +22,8 @@ type GerenciadorBatimentos struct {
 	executando         atomic.Bool
 	pararCh            chan struct{}
 	pararOnce          sync.Once
+	// Callback para processar mensagens GOSSIP (opcional)
+	onGossipMessage    func(tipos.Mensagem)
 }
 
 // NovoGerenciadorBatimentos cria um novo gerenciador de batimentos
@@ -55,6 +57,13 @@ func (gb *GerenciadorBatimentos) Iniciar() {
 	go gb.verificarFalhas()
 
 	utils.RegistrarLog("INFO", "Gerenciador de batimentos iniciado para broker %s", gb.idBroker)
+}
+
+// SetGossipHandler registra um callback para processar mensagens GOSSIP
+func (gb *GerenciadorBatimentos) SetGossipHandler(handler func(tipos.Mensagem)) {
+	gb.mutex.Lock()
+	defer gb.mutex.Unlock()
+	gb.onGossipMessage = handler
 }
 
 // enviarBatimentos envia periodicamente batimentos para vizinhos
@@ -140,10 +149,20 @@ func (gb *GerenciadorBatimentos) receberBatimentos() {
 			continue
 		}
 
-		if batimento.Tipo == "BATIMENTO" {
+		switch batimento.Tipo {
+		case "BATIMENTO":
 			gb.processarBatimento(batimento)
-		} else {
-			utils.RegistrarLog("AVISO", "Mensagem desconhecida recebida: %v", batimento.Tipo)
+		case "GOSSIP":
+			// Rota para o handler de GOSSIP se registrado
+			gb.mutex.RLock()
+			handler := gb.onGossipMessage
+			gb.mutex.RUnlock()
+			if handler != nil {
+				handler(batimento)
+			}
+		default:
+			// Ignora silenciosamente outros tipos de mensagens
+			// (evita poluição de logs com mensagens esperadas)
 		}
 	}
 }
