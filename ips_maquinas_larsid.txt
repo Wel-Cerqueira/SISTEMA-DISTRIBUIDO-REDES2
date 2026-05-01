@@ -1,0 +1,38 @@
+Lista com todos os IPS do larsid:
+
+172.16.103.1 
+172.16.103.2 
+172.16.103.3 
+172.16.103.4 
+172.16.103.5 
+172.16.103.6 
+172.16.103.7 
+172.16.103.8 
+172.16.103.9 
+172.16.103.10 
+172.16.103.11 
+172.16.103.12 
+172.16.103.13 
+172.16.103.14
+
+
+###Comando para rodar em cada máquina:
+
+docker run -d --name broker \
+  --network host \
+  -e LAB_IPS="172.16.103.1 172.16.103.2 172.16.103.3 172.16.103.4" \
+  broker:latest
+
+
+###Comandos para ver logs e remover conteiner
+
+docker-compose logs -f
+docker logs -f broker
+
+docker rm -f broker
+
+
+### Como remover um broker (sem afetar o resto)
+
+docker stop broker
+docker rm broker

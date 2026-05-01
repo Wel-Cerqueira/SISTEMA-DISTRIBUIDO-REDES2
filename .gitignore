@@ -12,3 +12,4 @@
 #broker
 # Vendor directory
 /vendor/
+*.tar.gz
