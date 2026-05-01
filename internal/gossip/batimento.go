@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// GerenciadorBatimentos gerencia batimentos cardÃ­acos entre brokers
 type GerenciadorBatimentos struct {
 	idBroker           string
 	vizinhos           map[string]*tipos.Vizinho
@@ -22,8 +21,7 @@ type GerenciadorBatimentos struct {
 	executando         atomic.Bool
 	pararCh            chan struct{}
 	pararOnce          sync.Once
-	// Callback para processar mensagens GOSSIP (opcional)
-	onGossipMessage    func(tipos.Mensagem)
+	gossipHandler      func(msg tipos.Mensagem) // ✅ CAMPO ADICIONADO
 }
 
 // NovoGerenciadorBatimentos cria um novo gerenciador de batimentos
@@ -57,13 +55,6 @@ func (gb *GerenciadorBatimentos) Iniciar() {
 	go gb.verificarFalhas()
 
 	utils.RegistrarLog("INFO", "Gerenciador de batimentos iniciado para broker %s", gb.idBroker)
-}
-
-// SetGossipHandler registra um callback para processar mensagens GOSSIP
-func (gb *GerenciadorBatimentos) SetGossipHandler(handler func(tipos.Mensagem)) {
-	gb.mutex.Lock()
-	defer gb.mutex.Unlock()
-	gb.onGossipMessage = handler
 }
 
 // enviarBatimentos envia periodicamente batimentos para vizinhos
@@ -118,7 +109,21 @@ func (gb *GerenciadorBatimentos) enviarBatimentos() {
 	}
 }
 
-// receberBatimentos recebe batimentos de outros brokers
+// processarBatimento processa um batimento recebido
+func (gb *GerenciadorBatimentos) processarBatimento(batimento tipos.Mensagem) {
+	gb.mutex.Lock()
+	defer gb.mutex.Unlock()
+
+	if vizinho, existe := gb.vizinhos[batimento.OrigemID]; existe {
+		vizinho.UltimoBatimento = time.Now()
+		if !vizinho.Ativo {
+			vizinho.Ativo = true
+			utils.RegistrarLog("INFO", "Broker %s voltou a ficar ativo", batimento.OrigemID)
+		}
+	}
+}
+
+// receberBatimentos — corrigir para delegar GOSSIP ao handler
 func (gb *GerenciadorBatimentos) receberBatimentos() {
 	buffer := make([]byte, 65536)
 
@@ -137,46 +142,31 @@ func (gb *GerenciadorBatimentos) receberBatimentos() {
 		}
 
 		if n == 0 {
-			utils.RegistrarLog("ERRO", "Mensagem vazia recebida, ignorando")
 			continue
 		}
 
-		dados := buffer[:n]
+		dados := make([]byte, n) // ✅ Cópia do buffer para evitar race condition
+		copy(dados, buffer[:n])
 
-		var batimento tipos.Mensagem
-		if err := json.Unmarshal(dados, &batimento); err != nil {
-			utils.RegistrarLog("ERRO", "Falha ao desserializar batimento (%d bytes): %v", n, err)
+		var msg tipos.Mensagem
+		if err := json.Unmarshal(dados, &msg); err != nil {
+			utils.RegistrarLog("ERRO", "Falha ao desserializar mensagem UDP (%d bytes): %v", n, err)
 			continue
 		}
 
-		switch batimento.Tipo {
+		switch msg.Tipo {
 		case "BATIMENTO":
-			gb.processarBatimento(batimento)
+			gb.processarBatimento(msg)
 		case "GOSSIP":
-			// Rota para o handler de GOSSIP se registrado
+			// ✅ Delega ao handler registrado em vez de logar como desconhecido
 			gb.mutex.RLock()
-			handler := gb.onGossipMessage
+			handler := gb.gossipHandler
 			gb.mutex.RUnlock()
 			if handler != nil {
-				handler(batimento)
+				go handler(msg)
 			}
 		default:
-			// Ignora silenciosamente outros tipos de mensagens
-			// (evita poluição de logs com mensagens esperadas)
-		}
-	}
-}
-
-// processarBatimento processa um batimento recebido
-func (gb *GerenciadorBatimentos) processarBatimento(batimento tipos.Mensagem) {
-	gb.mutex.Lock()
-	defer gb.mutex.Unlock()
-
-	if vizinho, existe := gb.vizinhos[batimento.OrigemID]; existe {
-		vizinho.UltimoBatimento = time.Now()
-		if !vizinho.Ativo {
-			vizinho.Ativo = true
-			utils.RegistrarLog("INFO", "Broker %s voltou a ficar ativo", batimento.OrigemID)
+			utils.RegistrarLog("AVISO", "Mensagem UDP desconhecida: %s", msg.Tipo)
 		}
 	}
 }
@@ -227,4 +217,11 @@ func (gb *GerenciadorBatimentos) Parar() {
 // ObterCanalFalha retorna o canal de notificação de falhas
 func (gb *GerenciadorBatimentos) ObterCanalFalha() <-chan string {
 	return gb.canalFalha
+}
+
+// SetGossipHandler configura o handler para mensagens GOSSIP recebidas via UDP
+func (gb *GerenciadorBatimentos) SetGossipHandler(handler func(msg tipos.Mensagem)) {
+	gb.mutex.Lock()
+	defer gb.mutex.Unlock()
+	gb.gossipHandler = handler
 }

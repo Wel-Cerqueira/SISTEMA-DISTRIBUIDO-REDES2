@@ -1,177 +1,332 @@
-﻿services:
-  broker1:
-    build: .
-    container_name: broker1
+﻿networks:
+  ormuz-net:
+    driver: bridge
+
+services:
+  # BROKERS (4 setores)
+  broker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: broker-1
+    networks:
+      - ormuz-net
     environment:
-      - BROKER_ID=broker-001
-      - BROKER_HOST=broker1
-      - PORT_TCP=:9000
-      - PORT_CTRL=:9100
-      - PORT_UDP=:9001
-      - PEERS=broker-002,broker2:9102,broker2:9003,broker-003,broker3:9104,broker3:9005,broker-004,broker4:9106,broker4:9007
-      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
+      BROKER_ID: "broker-1"
+      PORT_TCP: "9000"
+      PORT_UDP: "9001"
+      PORT_SENSORES: "9002"
+      BROKER_HOST: "broker-1"
+      BROKER_CALLBACK: "broker-1:9000"
+      # Formato: ID,TCP,UDP;ID,TCP,UDP;...
+      PEERS: "broker-2,broker-2:9010,broker-2:9011;broker-3,broker-3:9020,broker-3:9021;broker-4,broker-4:9030,broker-4:9031"
+    command:
+      - "-id=broker-1"
+      - "-porta-tcp=:9000"
+      - "-porta-udp=:9001"
+      - "-porta-ctrl=:9002"
+      - "-drones=drone-01=drone-01:9101,drone-02=drone-02:9101"
+      - "-peers=broker-2,broker-2:9010,broker-2:9011;broker-3,broker-3:9020,broker-3:9021;broker-4,broker-4:9030,broker-4:9031"
     ports:
-      - "9000:9000"
-      - "9100:9100"
+      - "9000:9000/tcp"
       - "9001:9001/udp"
-    networks:
-      - broker-network
+      - "9002:9002/tcp"
+    extra_hosts:
+      - "broker-1:127.0.0.1"
+      - "broker-2:172.18.0.12"
+      - "broker-3:172.18.0.13"
+      - "broker-4:172.18.0.14"
+    restart: unless-stopped
 
-  broker2:
-    build: .
-    container_name: broker2
+  broker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: broker-2
+    networks:
+      - ormuz-net
     environment:
-      - BROKER_ID=broker-002
-      - BROKER_HOST=broker2
-      - PORT_TCP=:9002
-      - PORT_CTRL=:9102
-      - PORT_UDP=:9003
-      - PEERS=broker-001,broker1:9100,broker1:9001,broker-003,broker3:9104,broker3:9005,broker-004,broker4:9106,broker4:9007
-      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
+      BROKER_ID: "broker-2"
+      PORT_TCP: "9010"
+      PORT_UDP: "9011"
+      PORT_SENSORES: "9012"
+      BROKER_HOST: "broker-2"
+      BROKER_CALLBACK: "broker-2:9010"
+      PEERS: "broker-1,broker-1:9000,broker-1:9001;broker-3,broker-3:9020,broker-3:9021;broker-4,broker-4:9030,broker-4:9031"
+    command:
+      - "-id=broker-2"
+      - "-porta-tcp=:9010"
+      - "-porta-udp=:9011"
+      - "-porta-ctrl=:9012"
+      - "-drones=drone-03=drone-03:9101,drone-04=drone-04:9101"
+      - "-peers=broker-1,broker-1:9000,broker-1:9001;broker-3,broker-3:9020,broker-3:9021;broker-4,broker-4:9030,broker-4:9031"
     ports:
-      - "9002:9000"
-      - "9102:9100"
-      - "9003:9001/udp"
-    networks:
-      - broker-network
+      - "9010:9010/tcp"
+      - "9011:9011/udp"
+      - "9012:9012/tcp"
+    extra_hosts:
+      - "broker-1:172.18.0.11"
+      - "broker-2:127.0.0.1"
+      - "broker-3:172.18.0.13"
+      - "broker-4:172.18.0.14"
+    restart: unless-stopped
 
-  broker3:
-    build: .
-    container_name: broker3
+  broker-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: broker-3
+    networks:
+      - ormuz-net
     environment:
-      - BROKER_ID=broker-003
-      - BROKER_HOST=broker3
-      - PORT_TCP=:9004
-      - PORT_CTRL=:9104
-      - PORT_UDP=:9005
-      - PEERS=broker-001,broker1:9100,broker1:9001,broker-002,broker2:9102,broker2:9003,broker-004,broker4:9106,broker4:9007
-      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
+      BROKER_ID: "broker-3"
+      PORT_TCP: "9020"
+      PORT_UDP: "9021"
+      PORT_SENSORES: "9022"
+      BROKER_HOST: "broker-3"
+      BROKER_CALLBACK: "broker-3:9020"
+      PEERS: "broker-1,broker-1:9000,broker-1:9001;broker-2,broker-2:9010,broker-2:9011;broker-4,broker-4:9030,broker-4:9031"
+    command:
+      - "-id=broker-3"
+      - "-porta-tcp=:9020"
+      - "-porta-udp=:9021"
+      - "-porta-ctrl=:9022"
+      - "-drones=drone-05=drone-05:9101,drone-06=drone-06:9101"
+      - "-peers=broker-1,broker-1:9000,broker-1:9001;broker-2,broker-2:9010,broker-2:9011;broker-4,broker-4:9030,broker-4:9031"
     ports:
-      - "9004:9000"
-      - "9104:9100"
-      - "9005:9001/udp"
-    networks:
-      - broker-network
+      - "9020:9020/tcp"
+      - "9021:9021/udp"
+      - "9022:9022/tcp"
+    extra_hosts:
+      - "broker-1:172.18.0.11"
+      - "broker-2:172.18.0.12"
+      - "broker-3:127.0.0.1"
+      - "broker-4:172.18.0.14"
+    restart: unless-stopped
 
-  broker4:
-    build: .
-    container_name: broker4
+  broker-4:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: broker-4
+    networks:
+      - ormuz-net
     environment:
-      - BROKER_ID=broker-004
-      - BROKER_HOST=broker4
-      - PORT_TCP=:9006
-      - PORT_CTRL=:9106
-      - PORT_UDP=:9007
-      - PEERS=broker-001,broker1:9100,broker1:9001,broker-002,broker2:9102,broker2:9003,broker-003,broker3:9104,broker3:9005
-      - DRONES=drone-01=drone1:9101,drone-02=drone2:9101,drone-03=drone3:9101,drone-04=drone4:9101,drone-05=drone5:9101,drone-06=drone6:9101,drone-07=drone7:9101,drone-08=drone8:9101
+      BROKER_ID: "broker-4"
+      PORT_TCP: "9030"
+      PORT_UDP: "9031"
+      PORT_SENSORES: "9032"
+      BROKER_HOST: "broker-4"
+      BROKER_CALLBACK: "broker-4:9030"
+      PEERS: "broker-1,broker-1:9000,broker-1:9001;broker-2,broker-2:9010,broker-2:9011;broker-3,broker-3:9020,broker-3:9021"
+    command:
+      - "-id=broker-4"
+      - "-porta-tcp=:9030"
+      - "-porta-udp=:9031"
+      - "-porta-ctrl=:9032"
+      - "-drones=drone-07=drone-07:9101,drone-08=drone-08:9101"
+      - "-peers=broker-1,broker-1:9000,broker-1:9001;broker-2,broker-2:9010,broker-2:9011;broker-3,broker-3:9020,broker-3:9021"
     ports:
-      - "9006:9000"
-      - "9106:9100"
-      - "9007:9001/udp"
+      - "9030:9030/tcp"
+      - "9031:9031/udp"
+      - "9032:9032/tcp"
+    extra_hosts:
+      - "broker-1:172.18.0.11"
+      - "broker-2:172.18.0.12"
+      - "broker-3:172.18.0.13"
+      - "broker-4:127.0.0.1"
+    restart: unless-stopped
+
+  # DRONES (8 no total)
+  drone-01:
+    build:
+      context: .
+      dockerfile: Dockerfile.drone
+    container_name: drone-01
     networks:
-      - broker-network
+      - ormuz-net
+    environment:
+      DRONE_ID: "drone-01"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9101:9101/tcp"
+    restart: unless-stopped
 
-  drone1:
+  drone-02:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone1
+    container_name: drone-02
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-01
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-02"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9102:9101/tcp"
+    restart: unless-stopped
 
-  drone2:
+  drone-03:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone2
+    container_name: drone-03
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-02
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-03"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9103:9101/tcp"
+    restart: unless-stopped
 
-  drone3:
+  drone-04:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone3
+    container_name: drone-04
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-03
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-04"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9104:9101/tcp"
+    restart: unless-stopped
 
-  drone4:
+  drone-05:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone4
+    container_name: drone-05
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-04
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-05"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9105:9101/tcp"
+    restart: unless-stopped
 
-  drone5:
+  drone-06:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone5
+    container_name: drone-06
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-05
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-06"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9106:9101/tcp"
+    restart: unless-stopped
 
-  drone6:
+  drone-07:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone6
+    container_name: drone-07
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-06
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-07"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9107:9101/tcp"
+    restart: unless-stopped
 
-  drone7:
+  drone-08:
     build:
       context: .
       dockerfile: Dockerfile.drone
-    container_name: drone7
+    container_name: drone-08
+    networks:
+      - ormuz-net
     environment:
-      - DRONE_ID=drone-07
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      DRONE_ID: "drone-08"
+      DRONE_PORT: ":9101"
+    ports:
+      - "9108:9101/tcp"
+    restart: unless-stopped
 
-  drone8:
-    build:
-      context: .
-      dockerfile: Dockerfile.drone
-    container_name: drone8
-    environment:
-      - DRONE_ID=drone-08
-      - DRONE_PORT=:9101
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
-
-  sensor1:
+  # SENSORES (1 por setor, tipos variados)
+  sensor-setor-1-movimento:
     build:
       context: .
       dockerfile: Dockerfile.sensor
-    container_name: sensor1
+    container_name: sensor-s1-movimento
+    networks:
+      - ormuz-net
     environment:
-      - SENSOR_ID=sensor-movimento-01
-      - SENSOR_TIPO=movimento
-      - LOCALIZACAO=setor-norte
-      - BROKERS=broker1:9000,broker2:9000,broker3:9000,broker4:9000
-    depends_on: [broker1, broker2, broker3, broker4]
-    networks: [broker-network]
+      SENSOR_ID: "sensor-s1-mov"
+      SENSOR_TIPO: "movimento"
+      LOCALIZACAO: "setor-1"
+      BROKERS: "broker-1:9002"
+    depends_on:
+      - broker-1
+    restart: unless-stopped
 
-networks:
-  broker-network:
-    driver: bridge
+  sensor-setor-1-pressao:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s1-pressao
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s1-pres"
+      SENSOR_TIPO: "pressao"
+      LOCALIZACAO: "setor-1"
+      BROKERS: "broker-1:9002"
+    depends_on:
+      - broker-1
+    restart: unless-stopped
+
+  sensor-setor-2-movimento:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s2-movimento
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s2-mov"
+      SENSOR_TIPO: "movimento"
+      LOCALIZACAO: "setor-2"
+      BROKERS: "broker-2:9012"
+    depends_on:
+      - broker-2
+    restart: unless-stopped
+
+  sensor-setor-3-temperatura:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s3-temp
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s3-temp"
+      SENSOR_TIPO: "temperatura"
+      LOCALIZACAO: "setor-3"
+      BROKERS: "broker-3:9022"
+    depends_on:
+      - broker-3
+    restart: unless-stopped
+
+  sensor-setor-4-pressao:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s4-pressao
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s4-pres"
+      SENSOR_TIPO: "pressao"
+      LOCALIZACAO: "setor-4"
+      BROKERS: "broker-4:9032"
+    depends_on:
+      - broker-4
+    restart: unless-stopped

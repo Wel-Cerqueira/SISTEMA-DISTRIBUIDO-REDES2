@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"net"
 	"regexp"
-	"strconv"
 	"sistema-distribuido-brokers/pkg/tipos"
 	"sistema-distribuido-brokers/pkg/utils"
-	"strings"
+	"strconv"
 	"sync"
 	"time"
 )
 
 // AlgoritmoBully implementa o algoritmo de eleiÃ§Ã£o Bully
 type AlgoritmoBully struct {
-	idBroker          string
+	idBroker            string
 	liderAtual          string
 	vizinhos            map[string]*tipos.Vizinho
 	emEleicao           bool
@@ -28,18 +27,21 @@ type AlgoritmoBully struct {
 // NovaEleicaoBully cria uma nova instÃ¢ncia do algoritmo Bully
 func NovaEleicaoBully(idBroker string, vizinhos map[string]*tipos.Vizinho) *AlgoritmoBully {
 	return &AlgoritmoBully{
-		idBroker:          idBroker,
+		idBroker:            idBroker,
 		liderAtual:          "",
 		vizinhos:            vizinhos,
 		emEleicao:           false,
 		canalEleicao:        make(chan tipos.Mensagem, 100),
 		canalResultado:      make(chan string, 10),
-		tempoEsperaResposta: 5 * time.Second,  // Aumentado para evitar race conditions
-		tempoEsperaVitoria:  8 * time.Second,  // Aumentado para evitar race conditions
+		tempoEsperaResposta: 5 * time.Second, // Aumentado para evitar race conditions
+		tempoEsperaVitoria:  8 * time.Second, // Aumentado para evitar race conditions
 	}
 }
 
 // IniciarEleicao inicia o processo de eleiÃ§Ã£o
+// ARQUIVO: internal/eleicao/bully.go — IniciarEleicao corrigida
+// Adicionar verificação de líder já existente via gossip antes de declarar vitória
+
 func (ab *AlgoritmoBully) IniciarEleicao() {
 	ab.mutex.Lock()
 	if ab.emEleicao {
@@ -49,52 +51,52 @@ func (ab *AlgoritmoBully) IniciarEleicao() {
 	ab.emEleicao = true
 	ab.mutex.Unlock()
 
-	utils.RegistrarLog("INFO", "Broker %s iniciando eleiÃ§Ã£o", ab.idBroker)
+	utils.RegistrarLog("INFO", "Broker %s iniciando eleição", ab.idBroker)
 
-	// Espera um tempo aleatório para evitar sincronização de eleições
-	time.Sleep(time.Duration(100+time.Now().UnixNano()%500) * time.Millisecond)
+	// Back-off aleatório para evitar eleições simultâneas
+	backoff := time.Duration(100+time.Now().UnixNano()%500) * time.Millisecond
+	time.Sleep(backoff)
 
-	// Encontra brokers com ID maior
-	brokersMaiores := ab.encontrarBrokersMaiores()
-
-	if len(brokersMaiores) == 0 {
-		// Nenhum broker maior, verifica se já não há um líder
-		if ab.liderAtual == "" {
-			ab.declararVitoria()
-		} else {
-			ab.mutex.Lock()
-			ab.emEleicao = false
-			ab.mutex.Unlock()
-			utils.RegistrarLog("INFO", "LÃ­der %s jÃ¡ existe, broker %s cancela eleiÃ§Ã£o", ab.liderAtual, ab.idBroker)
-		}
+	// Verifica novamente após back-off (outro broker pode ter ganho)
+	ab.mutex.RLock()
+	liderExistente := ab.liderAtual
+	ab.mutex.RUnlock()
+	if liderExistente != "" {
+		ab.mutex.Lock()
+		ab.emEleicao = false
+		ab.mutex.Unlock()
+		utils.RegistrarLog("INFO", "Líder %s já existe, broker %s cancela eleição", liderExistente, ab.idBroker)
 		return
 	}
 
-	// Envia mensagem de eleiÃ§Ã£o para brokers maiores
+	brokersMaiores := ab.encontrarBrokersMaiores()
+
+	if len(brokersMaiores) == 0 {
+		ab.declararVitoria()
+		return
+	}
+
 	ab.enviarMensagensEleicao(brokersMaiores)
 
-	// Aguarda respostas
 	select {
 	case resposta := <-ab.canalEleicao:
 		if resposta.Tipo == "RESPOSTA_ELEICAO" {
-			utils.RegistrarLog("INFO", "Broker %s recebeu resposta de eleiÃ§Ã£o de %s",
+			utils.RegistrarLog("INFO", "Broker %s recebeu resposta de eleição de %s",
 				ab.idBroker, resposta.OrigemID)
 			ab.aguardarVitoria()
 		}
 	case <-time.After(ab.tempoEsperaResposta):
-		// Timeout, verifica se ainda não há líder antes de declarar vitória
 		ab.mutex.RLock()
-		liderExistente := ab.liderAtual
+		liderExistente = ab.liderAtual
 		ab.mutex.RUnlock()
-		
+
 		if liderExistente == "" {
-			utils.RegistrarLog("INFO", "Broker %s timeout sem respostas, declarando vitÃ³ria", ab.idBroker)
+			utils.RegistrarLog("INFO", "Broker %s timeout sem respostas, declarando vitória", ab.idBroker)
 			ab.declararVitoria()
 		} else {
 			ab.mutex.Lock()
 			ab.emEleicao = false
 			ab.mutex.Unlock()
-			utils.RegistrarLog("INFO", "LÃ­der %s jÃ¡ existe durante timeout, broker %s cancela", liderExistente, ab.idBroker)
 		}
 	}
 }
@@ -150,25 +152,10 @@ func (ab *AlgoritmoBully) enviarMensagensEleicao(brokers []*tipos.Vizinho) {
 	for _, broker := range brokers {
 		go func(c *tipos.Vizinho) {
 			if err := ab.enviarMensagemTCP(c.EnderecoTCP, mensagem); err != nil {
-				// Durante startup, "connection refused" Ã© esperado - outros brokers podem nÃ£o estar prontos
-				// Log como DEBUG ao invÃ©s de ERRO para evitar poluiÃ§Ã£o de logs
-				if isConnectionRefused(err) {
-					utils.RegistrarLog("DEBUG", "Broker %s ainda nÃ£o estÃ¡ disponÃ­vel para eleiÃ§Ã£o: %s", c.ID, err)
-				} else {
-					utils.RegistrarLog("ERRO", "Falha ao enviar eleiÃ§Ã£o para %s: %v", c.ID, err)
-				}
+				utils.RegistrarLog("ERRO", "Falha ao enviar eleiÃ§Ã£o para %s: %v", c.ID, err)
 			}
 		}(broker)
 	}
-}
-
-// isConnectionRefused verifica se o erro Ã© "connection refused"
-func isConnectionRefused(err error) bool {
-	if err == nil {
-		return false
-	}
-	errStr := err.Error()
-	return strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "Connection refused")
 }
 
 // declararVitoria declara este broker como vencedor da eleiÃ§Ã£o
@@ -366,4 +353,3 @@ func extrairNumeroID(id string) (int, bool) {
 	}
 	return n, true
 }
-

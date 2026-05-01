@@ -2,7 +2,6 @@
 
 import (
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -17,6 +16,7 @@ type Mensagem struct {
 }
 
 // EstadoBroker representa o estado de um broker
+// EstadoBroker representa o estado de um broker
 type EstadoBroker struct {
 	ID                string             `json:"id"`
 	LiderAtual        string             `json:"lider_atual"`
@@ -24,7 +24,6 @@ type EstadoBroker struct {
 	Recursos          map[string]Recurso `json:"recursos"`
 	UltimaAtualizacao time.Time          `json:"ultima_atualizacao"`
 	Versao            uint64             `json:"versao"`
-	sync.RWMutex
 }
 
 // Vizinho representa um broker conhecido
