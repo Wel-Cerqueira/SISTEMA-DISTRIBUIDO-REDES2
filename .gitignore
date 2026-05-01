@@ -9,7 +9,7 @@
 # Executable files
 *.exe
 # Go binaries
-#broker
+/broker
 # Vendor directory
 /vendor/
 *.tar.gz
