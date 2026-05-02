@@ -352,6 +352,7 @@ func (b *Broker) tratarReplicacaoFila(mensagem tipos.Mensagem) {
 	var dadosBytes []byte
 	var err error
 
+	utils.RegistrarLog("DEBUG", "[BROKER-%s] Dados recebidos (primeiros 100 bytes): %q", b.id, string(dadosBytes[:min(100, len(dadosBytes))]))
 	switch v := mensagem.Dados.(type) {
 	case []byte:
 		dadosBytes = v
