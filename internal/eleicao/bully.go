@@ -33,8 +33,8 @@ func NovaEleicaoBully(idBroker string, vizinhos map[string]*tipos.Vizinho) *Algo
 		emEleicao:           false,
 		canalEleicao:        make(chan tipos.Mensagem, 100),
 		canalResultado:      make(chan string, 10),
-		tempoEsperaResposta: 5 * time.Second, // Aumentado para evitar race conditions
-		tempoEsperaVitoria:  8 * time.Second, // Aumentado para evitar race conditions
+		tempoEsperaResposta: 10 * time.Second,
+		tempoEsperaVitoria:  15 * time.Second,
 	}
 }
 

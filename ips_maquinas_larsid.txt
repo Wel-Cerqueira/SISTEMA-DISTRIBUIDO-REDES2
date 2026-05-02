@@ -15,6 +15,12 @@ Lista com todos os IPS do larsid:
 172.16.103.13 
 172.16.103.14
 
+### Comandos para buildar os arquivos
+
+git clone https://github.com/welton-cerqueira/SISTEMA-DISTRIBUIDO-REDES2.git
+cd SISTEMA-DISTRIBUIDO-REDES2
+docker build -t broker:latest -f Dockerfile .
+
 
 ###Comando para rodar em cada máquina:
 
@@ -22,6 +28,7 @@ docker run -d --name broker \
   --network host \
   -e LAB_IPS="172.16.103.1 172.16.103.2 172.16.103.3 172.16.103.4" \
   broker:latest
+
 
 
 ###Comandos para ver logs e remover conteiner
@@ -36,3 +43,9 @@ docker rm -f broker
 
 docker stop broker
 docker rm broker
+
+
+### Remove pasta
+
+cd ~
+rm -rf SISTEMA-DISTRIBUIDO-REDES2
