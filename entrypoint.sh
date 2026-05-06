@@ -1,8 +1,16 @@
 #!/bin/bash
 set -e
 
+# Se argumentos forem passados (via docker-compose command), executa o broker diretamente
+if [ $# -gt 0 ]; then
+    echo "Executando broker com argumentos fornecidos: $@"
+    exec /root/broker "$@"
+fi
+
+# Modo automático com LAB_IPS (para deploy em máquinas reais)
 if [ -z "$LAB_IPS" ]; then
-    echo "ERRO: Variável LAB_IPS não definida."
+    echo "ERRO: Variável LAB_IPS não definida e nenhum argumento fornecido."
+    echo "Uso: Defina LAB_IPS ou passe argumentos diretamente"
     exit 1
 fi
 

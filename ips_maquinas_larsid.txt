@@ -49,3 +49,47 @@ docker rm broker
 
 cd ~
 rm -rf SISTEMA-DISTRIBUIDO-REDES2
+
+
+
+
+
+📊 ver logs de todos os brokers (4 terminais em um):
+
+tail -f logs/broker1.log logs/broker2.log logs/broker3.log logs/broker4.log
+
+📈 LOGS INDIVIDUAIS:
+
+# Broker 1 (Norte):
+tail -f logs/broker1.log
+
+# Broker 2 (Sul):
+tail -f logs/broker2.log
+
+# Broker 3 (Leste):
+tail -f logs/broker3.log
+
+# Broker 4 (Oeste):
+tail -f logs/broker4.log
+
+🛑 DERRUBAR BROKERS INDIVIDUALMENTE:
+
+# Parar Broker 1:
+pkill -f 'broker-1'
+
+# Parar Broker 2:
+pkill -f 'broker-2'
+
+# Parar Broker 3:
+pkill -f 'broker-3'
+
+# Parar Broker 4:
+pkill -f 'broker-4'
+
+🚨 EMERGÊNCIA:
+
+# Parar tudo:
+pkill -f broker && pkill -f drone && pkill -f sensor
+
+# Forçar parada:
+pkill -9 -f broker && pkill -9 -f drone && pkill -9 -f sensor

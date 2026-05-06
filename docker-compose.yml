@@ -250,24 +250,25 @@ services:
       - "9108:9101/tcp"
     restart: unless-stopped
 
-  # SENSORES (1 por setor, tipos variados)
-  sensor-setor-1-movimento:
+  # SENSORES (3 por broker = 12 sensores total)
+  # BROKER 1 - Setor Norte (3 sensores)
+  sensor-s1-movimento:
     build:
       context: .
       dockerfile: Dockerfile.sensor
-    container_name: sensor-s1-movimento
+    container_name: sensor-s1-mov
     networks:
       - ormuz-net
     environment:
       SENSOR_ID: "sensor-s1-mov"
       SENSOR_TIPO: "movimento"
-      LOCALIZACAO: "setor-1"
+      LOCALIZACAO: "setor-norte-1"
       BROKERS: "broker-1:9002"
     depends_on:
       - broker-1
     restart: unless-stopped
 
-  sensor-setor-1-pressao:
+  sensor-s1-pressao:
     build:
       context: .
       dockerfile: Dockerfile.sensor
@@ -277,29 +278,111 @@ services:
     environment:
       SENSOR_ID: "sensor-s1-pres"
       SENSOR_TIPO: "pressao"
-      LOCALIZACAO: "setor-1"
+      LOCALIZACAO: "setor-norte-2"
       BROKERS: "broker-1:9002"
     depends_on:
       - broker-1
     restart: unless-stopped
 
-  sensor-setor-2-movimento:
+  sensor-s1-temperatura:
     build:
       context: .
       dockerfile: Dockerfile.sensor
-    container_name: sensor-s2-movimento
+    container_name: sensor-s1-temp
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s1-temp"
+      SENSOR_TIPO: "temperatura"
+      LOCALIZACAO: "setor-norte-3"
+      BROKERS: "broker-1:9002"
+    depends_on:
+      - broker-1
+    restart: unless-stopped
+
+  # BROKER 2 - Setor Sul (3 sensores)
+  sensor-s2-movimento:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s2-mov
     networks:
       - ormuz-net
     environment:
       SENSOR_ID: "sensor-s2-mov"
       SENSOR_TIPO: "movimento"
-      LOCALIZACAO: "setor-2"
+      LOCALIZACAO: "setor-sul-1"
       BROKERS: "broker-2:9012"
     depends_on:
       - broker-2
     restart: unless-stopped
 
-  sensor-setor-3-temperatura:
+  sensor-s2-pressao:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s2-pressao
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s2-pres"
+      SENSOR_TIPO: "pressao"
+      LOCALIZACAO: "setor-sul-2"
+      BROKERS: "broker-2:9012"
+    depends_on:
+      - broker-2
+    restart: unless-stopped
+
+  sensor-s2-temperatura:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s2-temp
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s2-temp"
+      SENSOR_TIPO: "temperatura"
+      LOCALIZACAO: "setor-sul-3"
+      BROKERS: "broker-2:9012"
+    depends_on:
+      - broker-2
+    restart: unless-stopped
+
+  # BROKER 3 - Setor Leste (3 sensores)
+  sensor-s3-movimento:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s3-mov
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s3-mov"
+      SENSOR_TIPO: "movimento"
+      LOCALIZACAO: "setor-leste-1"
+      BROKERS: "broker-3:9022"
+    depends_on:
+      - broker-3
+    restart: unless-stopped
+
+  sensor-s3-pressao:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s3-pressao
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s3-pres"
+      SENSOR_TIPO: "pressao"
+      LOCALIZACAO: "setor-leste-2"
+      BROKERS: "broker-3:9022"
+    depends_on:
+      - broker-3
+    restart: unless-stopped
+
+  sensor-s3-temperatura:
     build:
       context: .
       dockerfile: Dockerfile.sensor
@@ -309,13 +392,30 @@ services:
     environment:
       SENSOR_ID: "sensor-s3-temp"
       SENSOR_TIPO: "temperatura"
-      LOCALIZACAO: "setor-3"
+      LOCALIZACAO: "setor-leste-3"
       BROKERS: "broker-3:9022"
     depends_on:
       - broker-3
     restart: unless-stopped
 
-  sensor-setor-4-pressao:
+  # BROKER 4 - Setor Oeste (3 sensores)
+  sensor-s4-movimento:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s4-mov
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s4-mov"
+      SENSOR_TIPO: "movimento"
+      LOCALIZACAO: "setor-oeste-1"
+      BROKERS: "broker-4:9032"
+    depends_on:
+      - broker-4
+    restart: unless-stopped
+
+  sensor-s4-pressao:
     build:
       context: .
       dockerfile: Dockerfile.sensor
@@ -325,7 +425,23 @@ services:
     environment:
       SENSOR_ID: "sensor-s4-pres"
       SENSOR_TIPO: "pressao"
-      LOCALIZACAO: "setor-4"
+      LOCALIZACAO: "setor-oeste-2"
+      BROKERS: "broker-4:9032"
+    depends_on:
+      - broker-4
+    restart: unless-stopped
+
+  sensor-s4-temperatura:
+    build:
+      context: .
+      dockerfile: Dockerfile.sensor
+    container_name: sensor-s4-temp
+    networks:
+      - ormuz-net
+    environment:
+      SENSOR_ID: "sensor-s4-temp"
+      SENSOR_TIPO: "temperatura"
+      LOCALIZACAO: "setor-oeste-3"
       BROKERS: "broker-4:9032"
     depends_on:
       - broker-4

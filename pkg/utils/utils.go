@@ -22,11 +22,11 @@ func SerializarMensagem(msg interface{}) ([]byte, error) {
 
 // DesserializarMensagem converte bytes para mensagem
 func DesserializarMensagem(dados []byte, msg interface{}) error {
-	return json.Unmarshal(dados, msg)
+	return json.Unmarshal(dados, msg) //desserializa e coloca os dados na variavel msg
 }
 
 // ObterEnderecoLocal obtém o endereço IP local
-func ObterEnderecoLocal() string {
+func ObterEnderecoLocal() string {       //VER ESSA FUNÇÃO ============
 	conexao, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return "127.0.0.1"
