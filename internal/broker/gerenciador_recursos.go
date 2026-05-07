@@ -30,8 +30,6 @@ func NovoGerenciadorRecursos(idBroker string, estado *GerenciadorEstado, dronesC
 }
 
 // inicializarRecursos inicializa recursos padrão
-// ARQUIVO: internal/broker/gerenciador_recursos.go
-
 func (gr *GerenciadorRecursos) inicializarRecursos(dronesConfig string) {
 	// Primeiro tenta carregar do estado persistido
 	estado := gr.estado.ObterEstado()
@@ -206,7 +204,7 @@ func (gr *GerenciadorRecursos) ObterRecurso(recursoID string) (*tipos.Recurso, b
 	return recurso, ok
 }
 
-// SincronizarRecursos sincroniza recursos a partir de um estado recebido
+// Se um recurso está "em_uso" localmente mas "disponivel" remotamente, e o broker que o bloqueou caiu, o recurso é liberado automaticamente.
 func (gr *GerenciadorRecursos) SincronizarRecursos(estado *tipos.EstadoBroker) {
 	gr.mutex.Lock()
 	defer gr.mutex.Unlock()

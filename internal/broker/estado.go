@@ -12,9 +12,9 @@ import (
 
 // GerenciadorEstado gerencia o estado do broker
 type GerenciadorEstado struct {
-	estado        *tipos.EstadoBroker
-	arquivoEstado string
-	mutex         sync.RWMutex
+	estado        *tipos.EstadoBroker //Contém todas as informações do broker (ID, líder, vizinhos, recursos, etc.)
+	arquivoEstado string              //Path do arquivo JSON onde o estado é persistido (/tmp/broker_estado_{id}.json)
+	mutex         sync.RWMutex        //permite múltiplas leituras simultâneas mas apenas uma escrita por vez
 }
 
 // NovoGerenciadorEstado cria um novo gerenciador de estado

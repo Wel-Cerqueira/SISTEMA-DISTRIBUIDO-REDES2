@@ -51,7 +51,7 @@ type Broker struct {
 // e mensagens inter-broker compartilham portaTCP, distinguidos pelo formato do payload.
 func NovoBroker(id, portaTCP, portaUDP, portaCTRL string, listaVizinhos []string, dronesConfig string) (*Broker, error) {
 	estado := NovoGerenciadorEstado(id)
-	estado.CarregarEstado()
+	estado.CarregarEstado() //Tenta carregar estado persistido do disco (recuperação após reinicialização)
 
 	portaSensores := portaTCP
 	if strings.TrimSpace(portaCTRL) != "" && portaCTRL != portaTCP {
@@ -107,23 +107,6 @@ func NovoBroker(id, portaTCP, portaUDP, portaCTRL string, listaVizinhos []string
 	return b, nil
 }
 
-// extrairEstadoGossip extrai o EstadoBroker contido em uma mensagem GOSSIP.
-// Retorna (nil, false) se a mensagem não for GOSSIP ou não contiver estado válido.
-func extrairEstadoGossip(msg tipos.Mensagem) (*tipos.EstadoBroker, bool) {
-	if msg.Tipo != "GOSSIP" || msg.Dados == nil {
-		return nil, false
-	}
-	dados, err := json.Marshal(msg.Dados)
-	if err != nil {
-		return nil, false
-	}
-	var estado tipos.EstadoBroker
-	if err := json.Unmarshal(dados, &estado); err != nil {
-		return nil, false
-	}
-	return &estado, true
-}
-
 // Iniciar inicia todos os serviços do broker
 func (b *Broker) Iniciar() error {
 	// Listener principal: mensagens inter-broker
@@ -143,7 +126,7 @@ func (b *Broker) Iniciar() error {
 	b.protocoloGossip.Iniciar()
 
 	go b.processarMensagensTCP()
-	go b.processarRequisicoes()
+	go b.processarRequisicoes() //coração do sistema
 	go b.monitorarEleicao()
 	go b.monitorarFalhas()
 	go b.limparRequisicoesAntigas()
@@ -157,6 +140,23 @@ func (b *Broker) Iniciar() error {
 		b.id, b.portaTCP, b.portaUDP, b.portaSensores)
 
 	return nil
+}
+
+// extrairEstadoGossip extrai o EstadoBroker contido em uma mensagem GOSSIP.
+// Retorna (nil, false) se a mensagem não for GOSSIP ou não contiver estado válido.
+func extrairEstadoGossip(msg tipos.Mensagem) (*tipos.EstadoBroker, bool) {
+	if msg.Tipo != "GOSSIP" || msg.Dados == nil {
+		return nil, false
+	}
+	dados, err := json.Marshal(msg.Dados)
+	if err != nil {
+		return nil, false
+	}
+	var estado tipos.EstadoBroker
+	if err := json.Unmarshal(dados, &estado); err != nil {
+		return nil, false
+	}
+	return &estado, true
 }
 
 // iniciarListenerTCP abre o listener TCP principal (inter-broker)

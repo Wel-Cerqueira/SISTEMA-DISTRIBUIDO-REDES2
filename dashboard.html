@@ -5,252 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema Distribuído de Brokers</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .header {
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header h1 {
-            color: white;
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-
-        .header .subtitle {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9em;
-        }
-
-        .controls {
-            background: white;
-            padding: 15px 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .filter-group label {
-            font-weight: 600;
-            color: #555;
-            font-size: 0.9em;
-        }
-
-        select, input[type="text"] {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 0.9em;
-            background: white;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        select:hover, input[type="text"]:focus {
-            border-color: #4CAF50;
-            outline: none;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            font-size: 0.9em;
-        }
-
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .btn-danger {
-            background: #f44336;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #da190b;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
-        }
-
-        .stat-card.broker { border-left: 4px solid #2196F3; }
-        .stat-card.drone { border-left: 4px solid #FF9800; }
-        .stat-card.sensor { border-left: 4px solid #4CAF50; }
-        .stat-card.alert { border-left: 4px solid #f44336; }
-
-        .stat-title {
-            font-size: 0.85em;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .logs-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-        }
-
-        .log-section {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .log-header {
-            padding: 15px 20px;
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .log-header.broker-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .log-header.broker-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-        .log-header.broker-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
-        .log-header.broker-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #333; }
-
-        .log-content {
-            height: 400px;
-            overflow-y: auto;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            line-height: 1.6;
-            background: #f8f9fa;
-        }
-
-        .log-entry {
-            margin-bottom: 8px;
-            padding: 8px;
-            border-radius: 4px;
-            border-left: 3px solid transparent;
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .log-entry.INFO { border-left-color: #4CAF50; background: #e8f5e9; }
-        .log-entry.ALERTA { border-left-color: #f44336; background: #ffebee; }
-        .log-entry.AVISO { border-left-color: #FF9800; background: #fff3e0; }
-        .log-entry.DEBUG { border-left-color: #9e9e9e; background: #f5f5f5; }
-
-        .log-time {
-            color: #666;
-            font-size: 0.85em;
-        }
-
-        .log-level {
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.8em;
-        }
-
-        .log-level.INFO { background: #4CAF50; color: white; }
-        .log-level.ALERTA { background: #f44336; color: white; }
-        .log-level.AVISO { background: #FF9800; color: white; }
-        .log-level.DEBUG { background: #9e9e9e; color: white; }
-
-        .log-message {
-            margin-top: 4px;
-            color: #333;
-        }
-
-        .badge {
-            background: rgba(255,255,255,0.3);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-
-        .status-online { background: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
-        .status-offline { background: #f44336; }
-
-        @media (max-width: 768px) {
-            .logs-container {
-                grid-template-columns: 1fr;
-            }
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
+        /* (Mantém os estilos existentes) */
+        * { margin:0; padding:0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height:100vh; color:#333; }
+        .header { background:rgba(0,0,0,0.3); backdrop-filter:blur(10px); padding:20px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.1); }
+        .header h1 { color:white; font-size:2em; margin-bottom:10px; }
+        .subtitle { color:rgba(255,255,255,0.7); }
+        .controls { background:white; padding:15px 20px; display:flex; gap:15px; flex-wrap:wrap; border-bottom:2px solid #e0e0e0; }
+        .filter-group { display:flex; align-items:center; gap:8px; }
+        select, input { padding:8px 12px; border:2px solid #ddd; border-radius:6px; }
+        .btn { padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
+        .btn-primary { background:#4CAF50; color:white; }
+        .btn-danger { background:#f44336; color:white; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; padding:20px; max-width:1400px; margin:0 auto; }
+        .stat-card { background:white; border-radius:12px; padding:20px; box-shadow:0 4px 6px rgba(0,0,0,0.1); transition:transform 0.3s; }
+        .stat-card:hover { transform:translateY(-5px); }
+        .stat-title { font-size:0.85em; color:#666; text-transform:uppercase; margin-bottom:8px; }
+        .stat-value { font-size:2em; font-weight:bold; }
+        /* Cards dos brokers */
+        .brokers-container { max-width:1400px; margin:20px auto; padding:0 20px; display:grid; grid-template-columns:repeat(4, 1fr); gap:15px; }
+        .broker-card { background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1); }
+        .broker-header { padding:15px; background:#2196F3; color:white; font-weight:bold; }
+        .broker-header.broker-1 { background:#667eea; }
+        .broker-header.broker-2 { background:#f093fb; color:#333; }
+        .broker-header.broker-3 { background:#4facfe; }
+        .broker-header.broker-4 { background:#43e97b; color:#333; }
+        .broker-ip { font-size:0.9em; margin-top:5px; opacity:0.9; }
+        .broker-details { padding:15px; }
+        .device-list { margin-top:10px; }
+        .device-list h4 { font-size:0.9em; color:#555; margin-bottom:5px; }
+        .device-tag { display:inline-block; background:#f0f0f0; border-radius:12px; padding:4px 10px; margin:4px; font-size:0.8em; }
+        .device-tag.drone { background:#FF9800; color:white; }
+        .device-tag.sensor { background:#4CAF50; color:white; }
+        .logs-container { max-width:1400px; margin:0 auto; padding:0 20px 20px; display:grid; grid-template-columns:repeat(4, 1fr); gap:15px; }
+        .log-section { background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1); }
+        .log-header { padding:15px 20px; font-weight:bold; display:flex; justify-content:space-between; }
+        .log-header.broker-1 { background:#667eea; color:white; }
+        .log-header.broker-2 { background:#f093fb; color:#333; }
+        .log-header.broker-3 { background:#4facfe; color:white; }
+        .log-header.broker-4 { background:#43e97b; color:#333; }
+        .log-content { height:400px; overflow-y:auto; padding:15px; font-family:monospace; font-size:0.85em; background:#f8f9fa; }
+        .log-entry { margin-bottom:8px; padding:8px; border-radius:4px; border-left:3px solid transparent; animation:fadeIn 0.3s; }
+        .log-entry.INFO { border-left-color:#4CAF50; background:#e8f5e9; }
+        .log-entry.ALERTA { border-left-color:#f44336; background:#ffebee; }
+        .log-entry.AVISO { border-left-color:#FF9800; background:#fff3e0; }
+        .log-entry.DEBUG { border-left-color:#9e9e9e; background:#f5f5f5; }
+        .log-time { color:#666; font-size:0.85em; }
+        .log-level { font-weight:bold; padding:2px 6px; border-radius:3px; font-size:0.8em; }
+        .log-level.INFO { background:#4CAF50; color:white; }
+        .log-level.ALERTA { background:#f44336; color:white; }
+        .badge { background:rgba(255,255,255,0.3); padding:4px 8px; border-radius:12px; font-size:0.8em; }
+        .status-indicator { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+        .status-online { background:#4CAF50; box-shadow:0 0 8px #4CAF50; }
+        .status-offline { background:#f44336; }
+        @keyframes fadeIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+        @media (max-width:1200px) { .logs-container, .brokers-container { grid-template-columns:repeat(2, 1fr); } }
+        @media (max-width:768px) { .logs-container, .brokers-container { grid-template-columns:1fr; } .controls { flex-direction:column; } }
     </style>
 </head>
 <body>
@@ -266,7 +76,6 @@
                 <span class="status-indicator status-offline"></span>Offline
             </span>
         </div>
-        
         <div class="filter-group">
             <label for="filter-level">🔍 Nível:</label>
             <select id="filter-level">
@@ -277,7 +86,6 @@
                 <option value="DEBUG">Debug</option>
             </select>
         </div>
-
         <div class="filter-group">
             <label for="filter-agent">🤖 Agente:</label>
             <select id="filter-agent">
@@ -287,12 +95,10 @@
                 <option value="sensor">Sensores</option>
             </select>
         </div>
-
         <div class="filter-group">
             <label for="search-text">🔎 Buscar:</label>
             <input type="text" id="search-text" placeholder="Ex: temperatura, movimento...">
         </div>
-
         <button class="btn btn-primary" onclick="connect()">▶️ Conectar</button>
         <button class="btn btn-danger" onclick="disconnect()">⏹️ Parar</button>
         <button class="btn btn-primary" onclick="clearLogs()">🗑️ Limpar</button>
@@ -305,15 +111,83 @@
         </div>
         <div class="stat-card drone">
             <div class="stat-title">🚁 Drones Ativos</div>
-            <div class="stat-value" id="stat-drones">8</div>
+            <div class="stat-value" id="stat-drones">0</div>
         </div>
         <div class="stat-card sensor">
             <div class="stat-title">📟 Sensores Ativos</div>
-            <div class="stat-value" id="stat-sensors">12</div>
+            <div class="stat-value" id="stat-sensors">0</div>
         </div>
         <div class="stat-card alert">
             <div class="stat-title">⚠️ Eventos Críticos</div>
             <div class="stat-value" id="stat-alerts">0</div>
+        </div>
+    </div>
+
+    <!-- Cards dos brokers (IP e dispositivos) - Estáticos -->
+    <div class="brokers-container">
+        <div class="broker-card">
+            <div class="broker-header broker-1">
+                📡 broker-1
+                <div class="broker-ip" id="ip-broker-1">🌐 IP: ...</div>
+            </div>
+            <div class="broker-details">
+                <div class="device-list">
+                    <h4>🚁 Drones (<span id="drones-count-broker-1">0</span>)</h4>
+                    <div id="drones-broker-1">—</div>
+                </div>
+                <div class="device-list" style="margin-top:10px;">
+                    <h4>📟 Sensores (<span id="sensors-count-broker-1">0</span>)</h4>
+                    <div id="sensors-broker-1">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="broker-card">
+            <div class="broker-header broker-2">
+                📡 broker-2
+                <div class="broker-ip" id="ip-broker-2">🌐 IP: ...</div>
+            </div>
+            <div class="broker-details">
+                <div class="device-list">
+                    <h4>🚁 Drones (<span id="drones-count-broker-2">0</span>)</h4>
+                    <div id="drones-broker-2">—</div>
+                </div>
+                <div class="device-list" style="margin-top:10px;">
+                    <h4>📟 Sensores (<span id="sensors-count-broker-2">0</span>)</h4>
+                    <div id="sensors-broker-2">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="broker-card">
+            <div class="broker-header broker-3">
+                📡 broker-3
+                <div class="broker-ip" id="ip-broker-3">🌐 IP: ...</div>
+            </div>
+            <div class="broker-details">
+                <div class="device-list">
+                    <h4>🚁 Drones (<span id="drones-count-broker-3">0</span>)</h4>
+                    <div id="drones-broker-3">—</div>
+                </div>
+                <div class="device-list" style="margin-top:10px;">
+                    <h4>📟 Sensores (<span id="sensors-count-broker-3">0</span>)</h4>
+                    <div id="sensors-broker-3">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="broker-card">
+            <div class="broker-header broker-4">
+                📡 broker-4
+                <div class="broker-ip" id="ip-broker-4">🌐 IP: ...</div>
+            </div>
+            <div class="broker-details">
+                <div class="device-list">
+                    <h4>🚁 Drones (<span id="drones-count-broker-4">0</span>)</h4>
+                    <div id="drones-broker-4">—</div>
+                </div>
+                <div class="device-list" style="margin-top:10px;">
+                    <h4>📟 Sensores (<span id="sensors-count-broker-4">0</span>)</h4>
+                    <div id="sensors-broker-4">—</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -325,7 +199,6 @@
             </div>
             <div class="log-content" id="logs-broker-1"></div>
         </div>
-
         <div class="log-section">
             <div class="log-header broker-2">
                 <span>📡 Broker-2</span>
@@ -333,7 +206,6 @@
             </div>
             <div class="log-content" id="logs-broker-2"></div>
         </div>
-
         <div class="log-section">
             <div class="log-header broker-3">
                 <span>📡 Broker-3</span>
@@ -341,7 +213,6 @@
             </div>
             <div class="log-content" id="logs-broker-3"></div>
         </div>
-
         <div class="log-section">
             <div class="log-header broker-4">
                 <span>📡 Broker-4</span>
@@ -353,100 +224,91 @@
 
     <script>
         let eventSource = null;
-        let logCounts = {
-            'broker-1': 0, 'broker-2': 0, 'broker-3': 0, 'broker-4': 0,
-            'alerts': 0
-        };
+        let logCounts = { 'broker-1':0, 'broker-2':0, 'broker-3':0, 'broker-4':0, 'alerts':0 };
+        let brokersData = [];
 
         function connect() {
-            if (eventSource) {
-                disconnect();
-            }
-
+            if (eventSource) disconnect();
             eventSource = new EventSource('/logs');
-            
-            eventSource.onopen = function() {
-                document.getElementById('connection-status').innerHTML = 
-                    '<span class="status-indicator status-online"></span>Online';
-            };
-
-            eventSource.onmessage = function(event) {
+            eventSource.onopen = () => document.getElementById('connection-status').innerHTML = '<span class="status-indicator status-online"></span>Online';
+            eventSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     processLog(data);
-                } catch (e) {
-                    console.error('Erro ao processar log:', e);
-                }
+                } catch(e) { console.error(e); }
             };
-
-            eventSource.onerror = function() {
-                document.getElementById('connection-status').innerHTML = 
-                    '<span class="status-indicator status-offline"></span>Erro de conexão';
-            };
+            eventSource.onerror = () => document.getElementById('connection-status').innerHTML = '<span class="status-indicator status-offline"></span>Erro de conexão';
         }
 
         function disconnect() {
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-                document.getElementById('connection-status').innerHTML = 
-                    '<span class="status-indicator status-offline"></span>Offline';
+            if (eventSource) { eventSource.close(); eventSource = null; }
+            document.getElementById('connection-status').innerHTML = '<span class="status-indicator status-offline"></span>Offline';
+        }
+
+        // Mapeamento de sensores/drones para brokers (deve corresponder ao backend)
+        const sensorToBroker = {
+            'sensor-s1': 'broker-1', 'sensor-s2': 'broker-2',
+            'sensor-s3': 'broker-3', 'sensor-s4': 'broker-4'
+        };
+        const droneToBroker = {
+            'drone-01': 'broker-1', 'drone-02': 'broker-2', 'drone-03': 'broker-3', 'drone-04': 'broker-4',
+            'drone-05': 'broker-1', 'drone-06': 'broker-2', 'drone-07': 'broker-3', 'drone-08': 'broker-4'
+        };
+
+        function getBrokerFromAgent(agent) {
+            if (!agent) return 'broker-1';
+            if (agent.includes('broker-1')) return 'broker-1';
+            if (agent.includes('broker-2')) return 'broker-2';
+            if (agent.includes('broker-3')) return 'broker-3';
+            if (agent.includes('broker-4')) return 'broker-4';
+            // Verifica se é sensor
+            for (const [prefix, broker] of Object.entries(sensorToBroker)) {
+                if (agent.includes(prefix)) return broker;
             }
+            // Verifica se é drone
+            for (const [prefix, broker] of Object.entries(droneToBroker)) {
+                if (agent.includes(prefix)) return broker;
+            }
+            return 'broker-1'; // default
+        }
+
+        function getAgentType(agent) {
+            if (!agent) return 'broker';
+            if (agent.includes('broker')) return 'broker';
+            if (agent.includes('sensor')) return 'sensor';
+            if (agent.includes('drone')) return 'drone';
+            return 'broker';
         }
 
         function processLog(data) {
             const filterLevel = document.getElementById('filter-level').value;
             const filterAgent = document.getElementById('filter-agent').value;
             const searchText = document.getElementById('search-text').value.toLowerCase();
-
-            // Filtros
+            
             if (filterLevel !== 'all' && data.level !== filterLevel) return;
-            if (filterAgent !== 'all' && !data.agent.toLowerCase().includes(filterAgent)) return;
+            if (filterAgent !== 'all' && getAgentType(data.agent) !== filterAgent) return;
             if (searchText && !data.message.toLowerCase().includes(searchText)) return;
-
-            // Determina qual broker
-            let brokerId = 'broker-1';
-            if (data.agent.includes('broker-2')) brokerId = 'broker-2';
-            else if (data.agent.includes('broker-3')) brokerId = 'broker-3';
-            else if (data.agent.includes('broker-4')) brokerId = 'broker-4';
-
-            // Cria elemento de log
+            
+            let brokerId = getBrokerFromAgent(data.agent);
+            
             const logEntry = document.createElement('div');
             logEntry.className = `log-entry ${data.level}`;
-            logEntry.innerHTML = `
-                <span class="log-time">${data.timestamp}</span>
-                <span class="log-level ${data.level}">${data.level}</span>
-                <div class="log-message">${escapeHtml(data.message)}</div>
-            `;
-
-            // Adiciona ao container correto
+            logEntry.innerHTML = `<span class="log-time">${data.timestamp}</span> <span class="log-level ${data.level}">${data.level}</span><div class="log-message">${escapeHtml(data.message)}</div>`;
             const container = document.getElementById(`logs-${brokerId}`);
             if (container) {
                 container.appendChild(logEntry);
                 container.scrollTop = container.scrollHeight;
-                
-                // Atualiza contador
                 logCounts[brokerId]++;
-                document.getElementById(`count-${brokerId}`).textContent = 
-                    `${logCounts[brokerId]} logs`;
+                document.getElementById(`count-${brokerId}`).textContent = `${logCounts[brokerId]} logs`;
+                while (container.children.length > 100) container.removeChild(container.firstChild);
             }
-
-            // Conta alertas
-            if (data.level === 'ALERTA') {
-                logCounts.alerts++;
-                document.getElementById('stat-alerts').textContent = logCounts.alerts;
-            }
-
-            // Limita número de logs (mantém últimos 100)
-            while (container.children.length > 100) {
-                container.removeChild(container.firstChild);
-            }
+            if (data.level === 'ALERTA') { logCounts.alerts++; document.getElementById('stat-alerts').textContent = logCounts.alerts; }
         }
 
         function clearLogs() {
-            ['broker-1', 'broker-2', 'broker-3', 'broker-4'].forEach(id => {
-                const container = document.getElementById(`logs-${id}`);
-                if (container) container.innerHTML = '';
+            ['broker-1','broker-2','broker-3','broker-4'].forEach(id => {
+                const c = document.getElementById(`logs-${id}`);
+                if(c) c.innerHTML = '';
                 logCounts[id] = 0;
                 document.getElementById(`count-${id}`).textContent = '0 logs';
             });
@@ -460,12 +322,63 @@
             return div.innerHTML;
         }
 
-        // Auto-connect ao carregar
-        window.onload = function() {
-            setTimeout(connect, 500);
-        };
+        // Busca informações dos brokers (IP, sensores, drones) a cada 5 segundos
+        async function fetchBrokersInfo() {
+            try {
+                const resp = await fetch('/api/brokers');
+                const data = await resp.json();
+                brokersData = data;
+                updateBrokersUI();
+                updateStatsFromBrokers(data);
+            } catch(e) { console.error('Erro ao buscar brokers:', e); }
+        }
 
-        // Reconnect ao mudar filtros (após delay)
+        function updateBrokersUI() {
+            for (const broker of brokersData) {
+                // Atualiza IP
+                const ipEl = document.getElementById(`ip-${broker.name}`);
+                if (ipEl) ipEl.textContent = `🌐 IP: ${broker.ip || 'indisponível'}`;
+                
+                // Atualiza contagem de drones
+                const dronesCountEl = document.getElementById(`drones-count-${broker.name}`);
+                if (dronesCountEl) dronesCountEl.textContent = broker.drones.length;
+                
+                // Atualiza lista de drones
+                const dronesEl = document.getElementById(`drones-${broker.name}`);
+                if (dronesEl) {
+                    dronesEl.innerHTML = broker.drones.map(d => `<span class="device-tag drone">${d.id}</span>`).join('') || '—';
+                }
+                
+                // Atualiza contagem de sensores
+                const sensorsCountEl = document.getElementById(`sensors-count-${broker.name}`);
+                if (sensorsCountEl) sensorsCountEl.textContent = broker.sensors.length;
+                
+                // Atualiza lista de sensores
+                const sensorsEl = document.getElementById(`sensors-${broker.name}`);
+                if (sensorsEl) {
+                    sensorsEl.innerHTML = broker.sensors.map(s => `<span class="device-tag sensor">${s.id}</span>`).join('') || '—';
+                }
+            }
+        }
+
+        function updateStatsFromBrokers(brokers) {
+            let totalDrones = 0, totalSensors = 0;
+            for (const b of brokers) {
+                totalDrones += b.drones.length;
+                totalSensors += b.sensors.length;
+            }
+            document.getElementById('stat-drones').textContent = totalDrones;
+            document.getElementById('stat-sensors').textContent = totalSensors;
+            document.getElementById('stat-brokers').textContent = brokers.length;
+        }
+
+        // Auto-connect e polling a cada 5s
+        window.onload = () => {
+            setTimeout(connect, 500);
+            fetchBrokersInfo();
+            setInterval(fetchBrokersInfo, 5000);
+        };
+        
         let reconnectTimeout;
         document.querySelectorAll('select, input').forEach(el => {
             el.addEventListener('change', () => {

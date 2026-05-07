@@ -34,13 +34,19 @@ Interface visual para acompanhar logs de brokers, drones e sensores em tempo rea
 ### 🚀 Como usar o Dashboard:
 
 ```bash
+# 0. caso haja alterações no código
+docker compose up -d --build
+
 # 1. Inicie o sistema
-docker-compose up -d
+docker compose up -d
 
 # 2. Inicie o servidor do dashboard
 go run dashboard_server.go
 
 # 3. Abra o navegador em http://localhost:8080
+
+# 4. Finaliza os conteiners
+docker compose down
 ```
 
 ### ✨ Funcionalidades:
@@ -264,7 +270,7 @@ go build -o sensor ./cmd/sensor/main.go
 pkill -f broker && pkill -f drone && pkill -f sensor
 
 # Ou com Docker
-docker-compose down
+docker compose down
 ```
 
 ---

@@ -11,50 +11,10 @@ import (
 
 // ItemFila representa um item na fila de prioridade
 type ItemFila struct {
-	Requisicao   *tipos.Requisicao
-	Prioridade   int
-	Indice       int
-	CarimboTempo time.Time
-}
-
-// FilaPrioridade implementa heap.Interface para fila de prioridade
-type FilaPrioridade []*ItemFila
-
-func (fp FilaPrioridade) Len() int { return len(fp) }
-
-func (fp FilaPrioridade) Less(i, j int) bool {
-	// Critério 1: Prioridade (maior = mais importante)
-	if fp[i].Prioridade != fp[j].Prioridade {
-		return fp[i].Prioridade > fp[j].Prioridade
-	}
-	// Critério 2: Grau de Criticidade (maior = mais crítico)
-	if fp[i].Requisicao.GrauCriticidade != fp[j].Requisicao.GrauCriticidade {
-		return fp[i].Requisicao.GrauCriticidade > fp[j].Requisicao.GrauCriticidade
-	}
-	// Critério 3: Timestamp de entrada (mais antigo primeiro - FIFO)
-	return fp[i].Requisicao.TimestampEntrada.Before(fp[j].Requisicao.TimestampEntrada)
-}
-
-func (fp FilaPrioridade) Swap(i, j int) {
-	fp[i], fp[j] = fp[j], fp[i]
-	fp[i].Indice = i
-	fp[j].Indice = j
-}
-
-func (fp *FilaPrioridade) Push(x interface{}) {
-	n := len(*fp)
-	item := x.(*ItemFila)
-	item.Indice = n
-	*fp = append(*fp, item)
-}
-
-func (fp *FilaPrioridade) Pop() interface{} {
-	old := *fp
-	n := len(old)
-	item := old[n-1]
-	item.Indice = -1
-	*fp = old[0 : n-1]
-	return item
+	Requisicao   *tipos.Requisicao // Ponteiro para a requisição
+	Prioridade   int               // Prioridade calculada final
+	Indice       int               // Índice no heap (para operações O(log n))
+	CarimboTempo time.Time         // Timestamp de entrada na fila
 }
 
 // FilaDistribuida representa uma fila distribuída com prioridade
@@ -68,6 +28,32 @@ type FilaDistribuida struct {
 	// Cache de últimas requisições processadas (para evitar duplicidade)
 	ultimasProcessadas map[string]time.Time
 	tempoCache         time.Duration
+}
+
+// FilaPrioridade é uma struct que implementa a interface heap.Interface
+// do Go para criar uma fila de prioridade eficiente:
+type FilaPrioridade []*ItemFila
+
+// Retorna o número de itens na fila
+func (fp FilaPrioridade) Len() int {
+	return len(fp)
+}
+
+// Algoritmo de Ordenação (3 níveis):
+// Prioridade: Requisições com prioridade maior vêm primeiro
+// Grau de Criticidade: Se prioridades iguais, mais crítico primeiro
+// FIFO: Se ambos iguais, mais antigo primeiro (First In, First Out)
+func (fp FilaPrioridade) Less(i, j int) bool {
+	// Critério 1: Prioridade (maior = mais importante)
+	if fp[i].Prioridade != fp[j].Prioridade {
+		return fp[i].Prioridade > fp[j].Prioridade
+	}
+	// Critério 2: Grau de Criticidade (maior = mais crítico)
+	if fp[i].Requisicao.GrauCriticidade != fp[j].Requisicao.GrauCriticidade {
+		return fp[i].Requisicao.GrauCriticidade > fp[j].Requisicao.GrauCriticidade
+	}
+	// Critério 3: Timestamp de entrada (mais antigo primeiro - FIFO)
+	return fp[i].Requisicao.TimestampEntrada.Before(fp[j].Requisicao.TimestampEntrada)
 }
 
 // NovaFilaDistribuida cria uma nova fila distribuída
@@ -153,7 +139,8 @@ func (fd *FilaDistribuida) notificarProximaRequisicaoSemLock() {
 	case fd.canalProcessamento <- proxima:
 		utils.RegistrarLog("DEBUG", "Notificada requisição %s para processamento", proxima.ID)
 	default:
-		// Canal cheio; será processado na próxima oportunidade
+		utils.RegistrarLog("AVISO", "Canal de processamento cheio - requisição %s aguardará (fila: %d)",
+			proxima.ID, fd.fila.Len())
 	}
 }
 
@@ -398,4 +385,29 @@ func (fd *FilaDistribuida) Parar() {
 	fd.executando = false
 	close(fd.canalProcessamento)
 	utils.RegistrarLog("INFO", "Fila distribuída do broker %s parada", fd.idBroker)
+}
+
+// Troca dois elementos e atualiza seus índices
+func (fp FilaPrioridade) Swap(i, j int) {
+	fp[i], fp[j] = fp[j], fp[i]
+	fp[i].Indice = i
+	fp[j].Indice = j
+}
+
+// Insere no heap
+func (fp *FilaPrioridade) Push(x interface{}) {
+	n := len(*fp)
+	item := x.(*ItemFila)
+	item.Indice = n
+	*fp = append(*fp, item)
+}
+
+// remove do heap
+func (fp *FilaPrioridade) Pop() interface{} {
+	old := *fp
+	n := len(old)
+	item := old[n-1]
+	item.Indice = -1
+	*fp = old[0 : n-1]
+	return item
 }

@@ -82,10 +82,10 @@ func (md *MutexDistribuido) SolicitarAcesso(recursoID, requisicaoID string) (boo
 	aprovacoes, totalAtivos := md.solicitarPermissoes(recursoID)
 
 	// Inclui o próprio broker para maioria simples
-	totalParticipantes := totalAtivos + 1
-	maioria := (totalParticipantes / 2) + 1
-	recebidas := 1 // Aprovação local
-	pendentes := totalAtivos
+	totalParticipantes := totalAtivos + 1   // Todos os brokers ativos + este broker
+	maioria := (totalParticipantes / 2) + 1 // (total / 2) + 1 = maioria simples
+	recebidas := 1                          // Começa com 1 (aprovação local)
+	pendentes := totalAtivos                // Número de respostas ainda esperadas
 
 	timeout := time.After(md.tempoEsperaLock)
 
