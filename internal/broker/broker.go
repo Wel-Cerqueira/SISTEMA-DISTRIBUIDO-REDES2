@@ -92,10 +92,9 @@ func NovoBroker(id, portaTCP, portaUDP, portaCTRL string, listaVizinhos []string
 
 	b.protocoloGossip = gossip.NovoProtocoloGossip(id, estado.ObterEstado(), vizinhos)
 
-	// Registra o handler de GOSSIP no gerenciador de batimentos.
-	// Além de propagar o estado pelo protocolo gossip, sincroniza os recursos
-	// locais a partir do estado recebido — CORREÇÃO: SincronizarRecursos agora
-	// é chamado sempre que uma mensagem GOSSIP chega via UDP (PROBLEMA 6).
+	//Quando chegar uma mensagem GOSSIP via UDP, faça duas coisas:
+	// Atualize o estado global do cluster (líder, vizinhos)
+	// Atualize a lista de drones disponíveis localmente
 	b.gerenciadorBatimentos.SetGossipHandler(func(msg tipos.Mensagem) {
 		b.protocoloGossip.ProcessarMensagemGossip(msg)
 
@@ -133,7 +132,7 @@ func (b *Broker) Iniciar() error {
 	go b.replicacaoPeriodicaFila()
 
 	// Pequeno atraso para deixar os vizinhos subirem antes de iniciar eleição
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 	go b.algoritmoEleicao.IniciarEleicao()
 
 	utils.RegistrarLog("INFO", "Broker %s iniciado (TCP=%s, UDP=%s, Sensores=%s)",
